@@ -16,7 +16,8 @@ Vue.prototype.$axios = axios;
 // Vue.prototype.$httpUrl = 'http://localhost:8091'
 // Vue.prototype.$httpUrl = 'http://192.168.10.119:8091'
 // Vue.prototype.$httpUrl = 'http://192.168.10.17:8091'
-Vue.prototype.$httpUrl = 'https://113.40.33.42:8091'
+// Vue.prototype.$httpUrl = 'https://113.40.33.42:8091'
+Vue.prototype.$httpUrl = 'https://113.40.33.42:443'
 Vue.config.productionTip = false
 // Vue.use(ElementUI);
 Vue.use(VueRouter);
