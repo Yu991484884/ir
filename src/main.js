@@ -18,7 +18,7 @@ Vue.prototype.$axios = axios;
 // Vue.prototype.$httpUrl = 'http://192.168.10.17:8091'  '本番IP'
 // Vue.prototype.$httpUrl = 'https://113.40.33.42:8091'
 // Vue.prototype.$httpUrl = 'https://113.40.33.42:443'
-Vue.prototype.$httpUrl = 'http://www.ir-springboot.com/'
+Vue.prototype.$httpUrl = 'http://34.84.120.232:8091'
 Vue.config.productionTip = false
 // Vue.use(ElementUI);
 Vue.use(VueRouter);
