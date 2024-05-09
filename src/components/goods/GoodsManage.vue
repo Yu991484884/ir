@@ -292,28 +292,15 @@ export default {
         countermeasure:'',//対応策
         progress:'',//経過
         causeperson: '',//起因者
+        // employeeId:'',//社員ID
         userid: '',//起因者社員番号
         adminuserid: '',//登録者、ログインアカウント
         // remark: '',
         // action: '1' //出库和入库 入库为1 出库为2 
       },
       rules1: {},
-      // rules: {
-      //   name: [
-      //     {required: true, message: '请输入物品名', trigger: 'blur'}
-      //   ],
-      //   storage: [
-      //     {required: true, message: '请选择仓库', trigger: 'blur'}
-      //   ],
-      //   goodstype: [
-      //     {required: true, message: '请选择分类', trigger: 'blur'}
-      //   ],
-      //   count: [
-      //     {required: true, message: '请输入数量', trigger: 'blur'},
-      //     {pattern: /^([1-9][0-9]*){1,4}$/, message: '数量必须为正整数字', trigger: "blur"},
-      //     {validator: checkCount, trigger: 'blur'}
-      //   ],
-      // }
+      rules: {
+      }
     }
   },
   methods: {
@@ -428,7 +415,7 @@ export default {
       })
       this.form1.factor = this.currentRow.factor
       // this.form1.goods = this.currentRow.id
-      this.form1.adminuserid = this.user.id
+      this.form1.adminuserid = this.user.name
       // this.form1.action = '1' //入库
     },
     outGoods() {
@@ -443,7 +430,7 @@ export default {
 
       // this.form1.goodsname = this.currentRow.name
       // this.form1.goods = this.currentRow.id
-      this.form1.adminuserid = this.user.id
+      this.form1.adminuserid = this.user.name
       // this.form1.action = '2' //出库
 
     },

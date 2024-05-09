@@ -2,24 +2,15 @@
     <div style="width: 40%; margin-top: 50px;">
         <div style="margin-bottom: 5px;">
             <span class="demonstration">営業所：</span>
-            <el-select v-model="affiliationcode"placeholder="选择営業所">
-                <el-option
-                v-for="unit in unitNames"
-                :key="unit.id"
-                :label="unit.name"
-                :value="unit.name">
-                </el-option>
-            </el-select>
-                        
-                        <br>
+            <el-input v-model="affiliationcode" placeholder="営業所検索" suffix-icon="el-icon-search" style="width: 200px;margin-bottom: 10px; margin-right: 20px; "
+                        @keyup.enter.native="loadPost"></el-input><br>
             <span class="demonstration">　期間：</span>
                 <el-date-picker
-                v-model="today" 
+                v-model="today"
                 type="daterange"
                 range-separator="To"
                 start-placeholder="開始日"
-                end-placeholder="終了日"
-                class="date-picker-margin">
+                end-placeholder="終了日">
                 </el-date-picker><br><br>
             <el-button type="primary" style="margin-left: 5px;" @click="loadData">検索</el-button>
              <el-button type="success" style="margin-left: 5px;" @click="downloadPdf">出力</el-button><br><br>
@@ -37,7 +28,7 @@ export default {
     name:"Echarts",
     data(){
         return{
-            unitNames: [],
+
             affiliationcode: '', // 添加営業所搜索框绑定的数据
             today: [], // 添加日期选择器绑定的数据
             // 数据初始化为空数组
@@ -50,166 +41,30 @@ export default {
         // 你可能不需要在挂载时就加载数据
         // this.fetchFactorData(); 
         this.initBie()
-        this.fetchUnitNames();
     },
 
     methods:{
-        resetPageSize() {
-        this.pageSize = 10000; // 设定一个合适的默认值
-        console.log('PageSize has been reset to:', this.pageSize);
-    },
         // 发送搜索请求并处理数据
-        // async loadData() {
-        //     try {
-        //         // const [startDate, endDate] = this.today; // 解构日期范围
-        //         const today = this.today; // 解构日期范围
-        //         // 构建POST请求的请求体
-        //         const requestBody = {
-        //             param: {
-        //                 affiliationcode: this.affiliationcode,
-        //                 today: this.today // 假设后端需要的是一个数组
-        //             }
-        //         };
-
-        //         // 发送POST请求到后端，使用listPageC2端点
-        //         const response = await this.$axios.post(this.$httpUrl + '/record/listPageC2', requestBody);
-        //         // 用返回的数据更新ECharts图表
-        //         this.updateChart(response.data.data);
-        //     } catch (error) {
-        //         console.error('Error loading data:', error);
-        //     }
-        // },
-
-        // async loadData() {
-        //         try {
-        //             // 检查是否选择了営業所，如果没有，则只使用日期范围
-        //             const requestBody = this.affiliationcode ? {
-        //             param: {
-        //                 affiliationcode: this.affiliationcode,
-        //                 today: this.today
-        //             }
-        //             } : {
-        //             param: {
-        //                 today: this.today
-        //             }
-        //             };
-
-        //             // 发送POST请求到后端
-        //             const response = await axios.post(this.$httpUrl + '/record/listPageC2', requestBody);
-
-        //             // 处理响应数据...
-        //             // 这里是你的逻辑来更新界面或其他处理
-        //             this.updateChart(response.data.data);
-        //         } catch (error) {
-        //             console.error('Error loading data:', error);
-        //         }
-        //         },
-
         async loadData() {
-        try {
-            // 重置pageSize到初始状态
-            this.resetPageSize();
-            const requestBody = {
-                pageNum: this.pageNum,
-                pageSize: this.pageSize,
-                param: {
-                    affiliationcode: this.affiliationcode,
-                    today: this.today
-                }
-            };
-            const response = await axios.post(this.$httpUrl + '/record/listPageC2', requestBody);
-            this.updateChart(response.data.data.records);  // 更新图表
-            this.adjustPageSize(response.data.data.total);  // 调整页面大小
-        } catch (error) {
-            console.error('Error loading data:', error);
-        }
-    },
-
-    updateChart(data) {
-        this.$nextTick(() => {
-            let chartDom = document.getElementById('bie');
-            let myChart = echarts.getInstanceByDom(chartDom) || echarts.init(chartDom);
-            myChart.clear();  // 清除之前的图表数据
-
-            let seriesData = data.map(item => ({
-                value: !isNaN(item.count) ? Number(item.count) : 0,
-                name: item.factor
-            }));
-
-            let option = {
-                title: {
-                    text: 'IR統計分析',
-                    subtext: '要因別',
-                    left: 'center'
-                },
-                tooltip: {
-                    trigger: 'item'
-                },
-                legend: {
-                    orient: 'vertical',
-                    left: 'left',
-                    top: '10%',
-                },
-                series: [{
-                    name: 'IR統計分析',
-                    type: 'pie',
-                    radius: '50%',
-                    center: ['70%', '50%'],
-                    data: seriesData,
-                    emphasis: {
-                        itemStyle: {
-                            shadowBlur: 10,
-                            shadowOffsetX: 0,
-                            shadowColor: 'rgba(0, 0, 0, 0.5)'
-                        }
+            try {
+                // const [startDate, endDate] = this.today; // 解构日期范围
+                const today = this.today; // 解构日期范围
+                // 构建POST请求的请求体
+                const requestBody = {
+                    param: {
+                        affiliationcode: this.affiliationcode,
+                        today: this.today // 假设后端需要的是一个数组
                     }
-                }],
-                label: {
-                    normal: {
-                        show: true,
-                        formatter: '{b} ({d}%)'
-                    }
-                }
-            };
+                };
 
-            myChart.setOption(option, true);  // 强制重新渲染图表
-        });
-    },
-
-        adjustPageSize(totalRecords) {
-            if (totalRecords > 1000) {
-                this.pageSize = 1000;
-            } else if (totalRecords > 500) {
-                this.pageSize = 500;
-            } else {
-                this.pageSize = totalRecords;
+                // 发送POST请求到后端，使用listPageC2端点
+                const response = await this.$axios.post(this.$httpUrl + '/record/listPageC2', requestBody);
+                // 用返回的数据更新ECharts图表
+                this.updateChart(response.data.data);
+            } catch (error) {
+                console.error('Error loading data:', error);
             }
         },
-
-        updateChart(data) {
-            console.log('更新图表数据: ', data);
-            let chartDom = document.getElementById('bie');
-            let myChart = echarts.getInstanceByDom(chartDom) || echarts.init(chartDom);
-
-            let seriesData = data.map(item => ({
-                value: !isNaN(item.count) ? Number(item.count) : 0,
-                name: item.factor
-            }));
-
-            let option = myChart.getOption();
-            option.series[0].data = seriesData;
-            myChart.setOption(option, true); // 使用 true 参数强制更新
-            console.log('图表已更新');
-        },
-
-        fetchUnitNames() {
-            axios.get(this.$httpUrl + '/record/units').then(response => {
-            this.unitNames = response.data.data; // 假设响应数据包含在 data.data 中
-            }).catch(error => {
-            console.error('获取单位名称失败:', error);
-            });
-        },
-
         initBie() {
             let chartDom = document.getElementById('bie');
             let myChart = echarts.init(chartDom);
@@ -341,9 +196,5 @@ button {
 }
 button:hover {
     background-color: #66b1ff;
-}
-
-.date-picker-margin {
-  margin-right: 50px;
 }
 </style>
