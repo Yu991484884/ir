@@ -1,349 +1,485 @@
 <template>
-    <div style="width: 40%; margin-top: 50px;">
-        <div style="margin-bottom: 5px;">
-            <span class="demonstration">営業所：</span>
-            <el-select v-model="affiliationcode"placeholder="选择営業所">
-                <el-option
+  <div class="chart-manage-page">
+    <div class="page-card">
+      <!-- 検索エリア -->
+      <div class="filter-panel">
+        <div class="filter-grid chart-filter-grid">
+          <div class="filter-item">
+            <label class="filter-label">営業所</label>
+            <el-select
+              v-model="affiliationcode"
+              placeholder="営業所選択"
+              clearable
+              filterable
+              class="full-width"
+            >
+              <el-option
                 v-for="unit in unitNames"
                 :key="unit.id"
                 :label="unit.name"
-                :value="unit.name">
-                </el-option>
+                :value="unit.name"
+              />
             </el-select>
-                        
-                        <br>
-            <span class="demonstration">　期間：</span>
-                <el-date-picker
-                v-model="today" 
-                type="daterange"
-                range-separator="To"
-                start-placeholder="開始日"
-                end-placeholder="終了日"
-                class="date-picker-margin">
-                </el-date-picker><br><br>
-            <el-button type="primary" style="margin-left: 5px;" @click="loadData">検索</el-button>
-             <el-button type="success" style="margin-left: 5px;" @click="downloadPdf">出力</el-button><br><br>
+          </div>
+
+          <div class="filter-item">
+            <label class="filter-label">期間</label>
+            <el-date-picker
+              v-model="today"
+              type="daterange"
+              range-separator="To"
+              start-placeholder="開始日"
+              end-placeholder="終了日"
+              class="full-width"
+            />
+          </div>
         </div>
-        <div id="bie" style="width: 200%; height: 700px;"></div>
+
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <el-button type="primary" icon="el-icon-search" @click="loadData">
+              検索
+            </el-button>
+          </div>
+
+          <div class="toolbar-right">
+            <el-button type="success" icon="el-icon-picture" @click="downloadImage">
+              グラフ出力
+            </el-button>
+            <el-button type="warning" icon="el-icon-download" @click="downloadExcel">
+              Excel出力
+            </el-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- グラフ表示エリア -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">IR統計分析</div>
+          <div class="chart-subtitle">要因別の構成比グラフ</div>
+        </div>
+
+        <div id="bie" class="chart-box"></div>
+      </div>
     </div>
+  </div>
 </template>
+
 <script>
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-import axios from 'axios';
-import * as echarts from 'echarts';
+import html2canvas from "html2canvas";
+import axios from "axios";
+import * as echarts from "echarts";
+import * as XLSX from "xlsx";
 
 export default {
-    name:"Echarts",
-    data(){
-        return{
-            unitNames: [],
-            affiliationcode: '', // 添加営業所搜索框绑定的数据
-            today: [], // 添加日期选择器绑定的数据
-            // 数据初始化为空数组
-            // 不再需要factorData，因为我们会在loadData中获取数据
-            // factorData: []
-        }
+  name: "Echarts",
+  data() {
+    return {
+      unitNames: [],
+      affiliationcode: "",
+      today: [],
+      pageNum: 1,
+      pageSize: 10000,
+      chartInstance: null
+    };
+  },
+
+  mounted() {
+    this.initBie();
+    this.fetchUnitNames();
+
+    window.addEventListener("resize", this.handleResize);
+  },
+
+  beforeDestroy() {
+    window.removeEventListener("resize", this.handleResize);
+    if (this.chartInstance) {
+      this.chartInstance.dispose();
+      this.chartInstance = null;
+    }
+  },
+
+  methods: {
+    handleResize() {
+      if (this.chartInstance) {
+        this.chartInstance.resize();
+      }
     },
-    mounted(){
 
-        // 你可能不需要在挂载时就加载数据
-        // this.fetchFactorData(); 
-        this.initBie()
-        this.fetchUnitNames();
+    resetPageSize() {
+      this.pageSize = 10000;
     },
 
-    methods:{
-        resetPageSize() {
-        this.pageSize = 10000; // 设定一个合适的默认值
-        console.log('PageSize has been reset to:', this.pageSize);
-    },
-        // 发送搜索请求并处理数据
-        // async loadData() {
-        //     try {
-        //         // const [startDate, endDate] = this.today; // 解构日期范围
-        //         const today = this.today; // 解构日期范围
-        //         // 构建POST请求的请求体
-        //         const requestBody = {
-        //             param: {
-        //                 affiliationcode: this.affiliationcode,
-        //                 today: this.today // 假设后端需要的是一个数组
-        //             }
-        //         };
+    async loadData() {
+      try {
+        this.resetPageSize();
 
-        //         // 发送POST请求到后端，使用listPageC2端点
-        //         const response = await this.$axios.post(this.$httpUrl + '/record/listPageC2', requestBody);
-        //         // 用返回的数据更新ECharts图表
-        //         this.updateChart(response.data.data);
-        //     } catch (error) {
-        //         console.error('Error loading data:', error);
-        //     }
-        // },
+        const requestBody = {
+          pageNum: this.pageNum,
+          pageSize: this.pageSize,
+          param: {
+            affiliationcode: this.affiliationcode,
+            today: this.today
+          }
+        };
 
-        // async loadData() {
-        //         try {
-        //             // 检查是否选择了営業所，如果没有，则只使用日期范围
-        //             const requestBody = this.affiliationcode ? {
-        //             param: {
-        //                 affiliationcode: this.affiliationcode,
-        //                 today: this.today
-        //             }
-        //             } : {
-        //             param: {
-        //                 today: this.today
-        //             }
-        //             };
+        const response = await axios.post(this.$httpUrl + "/record/listPageC2", requestBody);
+        const records =
+          response &&
+          response.data &&
+          response.data.data &&
+          response.data.data.records
+            ? response.data.data.records
+            : [];
 
-        //             // 发送POST请求到后端
-        //             const response = await axios.post(this.$httpUrl + '/record/listPageC2', requestBody);
+        const total =
+          response &&
+          response.data &&
+          response.data.data &&
+          typeof response.data.data.total === "number"
+            ? response.data.data.total
+            : 0;
 
-        //             // 处理响应数据...
-        //             // 这里是你的逻辑来更新界面或其他处理
-        //             this.updateChart(response.data.data);
-        //         } catch (error) {
-        //             console.error('Error loading data:', error);
-        //         }
-        //         },
-
-        async loadData() {
-        try {
-            // 重置pageSize到初始状态
-            this.resetPageSize();
-            const requestBody = {
-                pageNum: this.pageNum,
-                pageSize: this.pageSize,
-                param: {
-                    affiliationcode: this.affiliationcode,
-                    today: this.today
-                }
-            };
-            const response = await axios.post(this.$httpUrl + '/record/listPageC2', requestBody);
-            this.updateChart(response.data.data.records);  // 更新图表
-            this.adjustPageSize(response.data.data.total);  // 调整页面大小
-        } catch (error) {
-            console.error('Error loading data:', error);
-        }
+        this.updateChart(records);
+        this.adjustPageSize(total);
+      } catch (error) {
+        console.error("Error loading data:", error);
+        this.$message.error("グラフデータの取得に失敗しました");
+      }
     },
 
     updateChart(data) {
-        this.$nextTick(() => {
-            let chartDom = document.getElementById('bie');
-            let myChart = echarts.getInstanceByDom(chartDom) || echarts.init(chartDom);
-            myChart.clear();  // 清除之前的图表数据
+      const chartDom = document.getElementById("bie");
+      if (!chartDom) return;
 
-            let seriesData = data.map(item => ({
-                value: !isNaN(item.count) ? Number(item.count) : 0,
-                name: item.factor
-            }));
+      const myChart = this.chartInstance || echarts.init(chartDom);
+      this.chartInstance = myChart;
 
-            let option = {
-                title: {
-                    text: 'IR統計分析',
-                    subtext: '要因別',
-                    left: 'center'
-                },
-                tooltip: {
-                    trigger: 'item'
-                },
-                legend: {
-                    orient: 'vertical',
-                    left: 'left',
-                    top: '10%',
-                },
-                series: [{
-                    name: 'IR統計分析',
-                    type: 'pie',
-                    radius: '50%',
-                    center: ['70%', '50%'],
-                    data: seriesData,
-                    emphasis: {
-                        itemStyle: {
-                            shadowBlur: 10,
-                            shadowOffsetX: 0,
-                            shadowColor: 'rgba(0, 0, 0, 0.5)'
-                        }
-                    }
-                }],
-                label: {
-                    normal: {
-                        show: true,
-                        formatter: '{b} ({d}%)'
-                    }
-                }
-            };
+      const seriesData = data.map(item => ({
+        value: !isNaN(item.count) ? Number(item.count) : 0,
+        name: item.factor
+      }));
 
-            myChart.setOption(option, true);  // 强制重新渲染图表
+      const total = seriesData.reduce((sum, item) => sum + item.value, 0);
+
+      const titleText = "IR統計分析 - 合計: " + total;
+
+      const option = {
+        title: {
+          text: titleText,
+          subtext: "要因別",
+          left: "center",
+          top: 10,
+          textStyle: {
+            fontSize: 18,
+            fontWeight: "bold",
+            color: "#303133"
+          },
+          subtextStyle: {
+            fontSize: 12,
+            color: "#909399"
+          }
+        },
+        tooltip: {
+          trigger: "item"
+        },
+        legend: {
+          orient: "vertical",
+          left: "left",
+          top: "middle",
+          itemGap: 14,
+          textStyle: {
+            fontSize: 13,
+            color: "#606266"
+          }
+        },
+        series: [
+          {
+            name: "IR統計分析",
+            type: "pie",
+            radius: ["35%", "65%"],
+            center: ["68%", "52%"],
+            data: seriesData,
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: "rgba(0, 0, 0, 0.25)"
+              }
+            },
+            label: {
+              show: true,
+              formatter: "{b} ({d}%)"
+            }
+          }
+        ]
+      };
+
+      myChart.setOption(option, true);
+      myChart.resize();
+    },
+
+    adjustPageSize(totalRecords) {
+      if (totalRecords > 1000) {
+        this.pageSize = 1000;
+      } else if (totalRecords > 500) {
+        this.pageSize = 500;
+      } else {
+        this.pageSize = totalRecords || 10000;
+      }
+    },
+
+    fetchUnitNames() {
+      axios
+        .get(this.$httpUrl + "/record/units")
+        .then(response => {
+          this.unitNames = response.data.data || [];
+        })
+        .catch(error => {
+          console.error("営業所の名称取得失敗:", error);
+          this.$message.error("営業所一覧の取得に失敗しました");
         });
     },
 
-        adjustPageSize(totalRecords) {
-            if (totalRecords > 1000) {
-                this.pageSize = 1000;
-            } else if (totalRecords > 500) {
-                this.pageSize = 500;
-            } else {
-                this.pageSize = totalRecords;
+    initBie() {
+      const chartDom = document.getElementById("bie");
+      if (!chartDom) return;
+
+      this.chartInstance = echarts.init(chartDom);
+
+      const option = {
+        title: {
+          text: "IR統計分析",
+          subtext: "要因別",
+          left: "center",
+          top: 10,
+          textStyle: {
+            fontSize: 18,
+            fontWeight: "bold",
+            color: "#303133"
+          },
+          subtextStyle: {
+            fontSize: 12,
+            color: "#909399"
+          }
+        },
+        tooltip: {
+          trigger: "item"
+        },
+        legend: {
+          orient: "vertical",
+          left: "left",
+          top: "middle",
+          itemGap: 14,
+          textStyle: {
+            fontSize: 13,
+            color: "#606266"
+          }
+        },
+        series: [
+          {
+            name: "IR統計分析",
+            type: "pie",
+            radius: ["35%", "65%"],
+            center: ["68%", "52%"],
+            data: [],
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: "rgba(0, 0, 0, 0.25)"
+              }
+            },
+            label: {
+              show: true,
+              formatter: "{b} ({d}%)"
             }
-        },
+          }
+        ]
+      };
 
-        updateChart(data) {
-            console.log('更新图表数据: ', data);
-            let chartDom = document.getElementById('bie');
-            let myChart = echarts.getInstanceByDom(chartDom) || echarts.init(chartDom);
+      this.chartInstance.setOption(option);
+    },
 
-            let seriesData = data.map(item => ({
-                value: !isNaN(item.count) ? Number(item.count) : 0,
-                name: item.factor
-            }));
+    downloadImage() {
+      const now = new Date();
+      const dateString = now.toISOString().split("T")[0].replace(/-/g, "");
+      const filename = `${dateString}${this.affiliationcode ? "-" + this.affiliationcode : ""}-IR統計分析.png`;
 
-            let option = myChart.getOption();
-            option.series[0].data = seriesData;
-            myChart.setOption(option, true); // 使用 true 参数强制更新
-            console.log('图表已更新');
-        },
+      html2canvas(document.querySelector("#bie")).then(canvas => {
+        const imgData = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.href = imgData;
+        link.download = filename;
+        link.click();
+      });
+    },
 
-        fetchUnitNames() {
-            axios.get(this.$httpUrl + '/record/units').then(response => {
-            this.unitNames = response.data.data; // 假设响应数据包含在 data.data 中
-            }).catch(error => {
-            console.error('获取单位名称失败:', error);
-            });
-        },
+    async downloadExcel() {
+      if (!this.affiliationcode && !this.today.length) {
+        this.$message.error("営業所と日付を選択してください");
+        return;
+      }
+      if (!this.affiliationcode) {
+        this.$message.error("営業所を選択してください");
+        return;
+      }
+      if (!this.today.length) {
+        this.$message.error("日付を選択してください");
+        return;
+      }
 
-        initBie() {
-            let chartDom = document.getElementById('bie');
-            let myChart = echarts.init(chartDom);
-            let option;
-             // 使用factorData来构建ECharts的数据系列
-            //  let seriesData = this.factorData.map(item => ({
-            //     value: item.count, // 假设每个`factor`有一个`count`属性
-            //     name: item.factor // 使用`factor`字段作为名称
-            // }));
+      try {
+        const requestBody = {
+          param: {
+            affiliationcode: this.affiliationcode,
+            today: this.today
+          }
+        };
 
-            option = {
-                title: {
-                    text: 'IR統計分析',
-                    subtext: '要因別',
-                    left: 'center'
-                },
-                tooltip: {
-                    trigger: 'item'
-                },
+        const response = await axios.post(this.$httpUrl + "/record/listPageC2", requestBody);
+        const records = response.data.data.records || [];
 
-                // 图例
-                legend: {
-                    orient: 'vertical',
-                    left: 'left',
-                    top:'10%',
-                },
-                series: [
-                    {
-                        name: 'IR統計分析',
-                        type: 'pie',
-                        radius: '50%',
-                        center: ['70%', '50%'], // 调整这个值来移动饼图
-                        // data: seriesData,
-                        data:[],
-                        emphasis: {
-                            itemStyle: {
-                                shadowBlur: 10,
-                                shadowOffsetX: 0,
-                                shadowColor: 'rgba(0, 0, 0, 0.5)'
-                            }
-                        },
-                        label:{
-                            normal:{
-                                show:true,
-                                // {a} 表示系列名。
-                                // {b} 表示数据项的名字。
-                                // {c} 表示数据项的值。
-                                // {d} 表示数据项值的百分比。
-                                formatter:'{b} ({d}%)'
-                            }
-                        }
-                    }
-                ],
-            };
+        const data = [
+          ["発生年月", "要因別", "実績件数"],
+          ...records.map(item => [this.today[0], item.factor, item.count])
+        ];
 
-            // option && myChart.setOption(option);
-            myChart.setOption(option);
-               },
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
 
-            downloadPdf() {
-                const today = new Date();
-                const dateString = today.toISOString().split('T')[0].replace(/-/g,'');
-                 // 检查affiliationcode是否为空或未定义，如果是，则不添加到文件名中
-                 const filename = `${dateString}${this.affiliationcode ? '-' + this.affiliationcode : ''}-IR統計分析.pdf`; // 根据affiliationcode生成文件名
+        const wsCols = ["A", "B", "C"];
+        wsCols.forEach(col => {
+          for (let row = 1; row <= data.length; row++) {
+            const cell = ws[`${col}${row}`];
+            if (cell) {
+              cell.s = {
+                font: {
+                  name: "游ゴシック",
+                  sz: 11,
+                  color: { rgb: "000000" }
+                }
+              };
+            }
+          }
+        });
 
-                // 使用html2canvas对我们的数据可视化进行截图
-                html2canvas(document.querySelector("#bie")).then(canvas => {
-                    // 将canvas转换成一个图片URL
-                    const imgData = canvas.toDataURL('image/png');
-                    
-                    // 创建一个新的jsPDF实例
-                    const pdf = new jsPDF({
-                        orientation: 'landscape',
-                    });
-
-                    // 将图片添加到PDF中
-                    // pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
-                    pdf.addImage(imgData, 'PNG',  0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
-                    
-                    // 保存PDF（如果你想要在客户端保存PDF）
-                    pdf.save(filename);
-                });
-                    
-                },
-                updateChart(data) {
-                    let chartDom = document.getElementById('bie');
-                    let myChart = echarts.getInstanceByDom(chartDom) || echarts.init(chartDom);
-
-   
-
-                    let seriesData = data.map(item => ({
-                        // value: item.count, // 后端返回的数据字段
-                        value: !isNaN(item.count) ? Number(item.count) : 0, // 确保count是数字类型
-                        name: item.factor // 后端返回的数据字段
-                    }));
-
-                    // 计算总和
-                    //reduce 函数用于迭代数组中的每个元素，并累加其 count 属性。
-                    let total = seriesData.reduce((sum,item)=> sum + item.value,0);
-                    console.log('合計：'+total)
-                    
-                    // 构建完整的标题文本，包括总和
-                    let titleText = 'IR統計分析 - 合計: ' + total;
-
-                    // 获取已有的配置或创建新的配置
-                    let option = myChart.getOption();
-                    option.title[0].text = titleText; // 更新标题文本
-                    option.series[0].data = seriesData; // 更新数据
-                    // option.series[0].data = seriesData;// 更新数据
-                    myChart.setOption(option, true); // 使用新配置更新图表
-
-                },
-
-
+        const filename = `${this.affiliationcode}-要因別.xlsx`;
+        XLSX.writeFile(wb, filename);
+      } catch (error) {
+        console.error("Error downloading Excel:", error);
+        this.$message.error("Excel出力に失敗しました");
+      }
     }
- }
-
-     
+  }
+};
 </script>
+
 <style scoped>
-button {
-    margin-left: 5px;
-    padding: 10px 15px;
-    background-color: #409eff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-button:hover {
-    background-color: #66b1ff;
+.chart-manage-page {
+  padding: 20px;
+  background: #f7f8fa;
+  min-height: 100%;
+  box-sizing: border-box;
 }
 
-.date-picker-margin {
-  margin-right: 50px;
+.page-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.filter-panel {
+  margin-bottom: 18px;
+}
+
+.chart-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #606266;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.chart-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+  border: 1px solid #ebeef5;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.chart-header {
+  margin-bottom: 10px;
+}
+
+.chart-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #303133;
+}
+
+.chart-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.chart-box {
+  width: 100%;
+  height: 700px;
+}
+
+@media screen and (max-width: 768px) {
+  .chart-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    width: 100%;
+  }
+
+  .chart-box {
+    height: 520px;
+  }
 }
 </style>

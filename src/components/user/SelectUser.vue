@@ -1,299 +1,185 @@
 <template>
-  <div>
-    <div style="margin-bottom: 5px;">
-      <el-input v-model="name" placeholder="名前検索" suffix-icon="el-icon-search" style="width: 200px;"
-                @keyup.enter.native="loadPost"></el-input>
-      <!-- <el-select v-model="sex" filterable placeholder="请选择性别" style="margin-left: 5px;">
-        <el-option
-            v-for="item in sexs"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value">
-        </el-option>
-      </el-select> -->
-      <el-button type="primary" style="margin-left: 5px;" @click="loadPost">検索</el-button>
-      <el-button type="success" @click="resetParam">クリア</el-button>
+  <div class="select-user-page">
+    <div class="page-card">
+      <!-- 検索エリア -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <el-input
+            v-model="name"
+            class="search-input"
+            placeholder="名前を入力してください"
+            prefix-icon="el-icon-search"
+            clearable
+            @keyup.enter.native="loadPost"
+          />
+          <el-button type="primary" icon="el-icon-search" @click="loadPost">
+            検索
+          </el-button>
+          <el-button icon="el-icon-refresh-left" @click="resetParam">
+            クリア
+          </el-button>
+        </div>
+      </div>
 
+      <!-- テーブル -->
+      <el-table
+        :data="tableData"
+        border
+        stripe
+        highlight-current-row
+        class="custom-table"
+        :header-cell-style="{
+          background: '#f5f7fa',
+          color: '#303133',
+          fontWeight: '600'
+        }"
+        @current-change="selectCurrentChange"
+      >
+        <el-table-column prop="no" label="ID" width="80" align="center" />
+        <el-table-column prop="id" label="社員番号" width="110" align="center" />
+        <el-table-column prop="name" label="姓名" min-width="120" />
+
+        <el-table-column label="営業所" min-width="180">
+          <template slot-scope="scope">
+            {{ getUnitName(scope.row.unitcode) }}
+          </template>
+        </el-table-column>
+
+        <el-table-column label="業種" min-width="140">
+          <template slot-scope="scope">
+            {{ getOccupationName(scope.row.occupationcode) }}
+          </template>
+        </el-table-column>
+
+        <el-table-column label="役職" min-width="120">
+          <template slot-scope="scope">
+            {{ getJobTitleName(scope.row.jobtitlecode) }}
+          </template>
+        </el-table-column>
+
+        <el-table-column label="組織" min-width="200">
+          <template slot-scope="scope">
+            {{ getOrganizationName(scope.row.organizationcode) }}
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- ページネーション -->
+      <div class="pagination-wrap">
+        <el-pagination
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :current-page="pageNum"
+          :page-sizes="[5, 10, 20, 30]"
+          :page-size="pageSize"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          background
+        />
+      </div>
     </div>
-    <el-table :data="tableData"
-              :header-cell-style="{ background: '#f2f5fc', color: '#555555' }"
-              border
-              highlight-current-row
-              @current-change="selectCurrentChange">
-      <el-table-column prop="no" label="ID" width="60">
-      </el-table-column>
-      <el-table-column prop="id" label="社員番号" width="70">
-      </el-table-column>
-      <el-table-column prop="name" label="姓名" width="100">
-      </el-table-column>
 
-      <el-table-column 　prop="unitcode" label="営業所" width="150" >
-        <template slot-scope="scope">
-              {{ 
-              scope.row.unitcode === 1 ? "管理本部" : 
-              scope.row.unitcode === 3 ? "業務本部" : 
-              scope.row.unitcode === 10 ? "川口ﾕﾆｯﾄ" : 
-              scope.row.unitcode === 14 ? "大宮ﾕﾆｯﾄ" : 
-              scope.row.unitcode === 18 ? "横浜ﾕﾆｯﾄ" : 
-              scope.row.unitcode === 22 ? "船橋ﾕﾆｯﾄ" : 
-              scope.row.unitcode === 23 ? "浮島ﾕﾆｯﾄ" : 
-              scope.row.unitcode === 27 ? "厚木ﾕﾆｯﾄ" : 
-              scope.row.unitcode === 28 ? "鴻巣ﾕﾆｯﾄ" : 
-              scope.row.unitcode === 31 ? "大宮C-ｲﾝﾍﾞﾝﾄﾘｰ①兼日中ｸﾞﾛｽ" : 
-              scope.row.unitcode === 32 ? "大宮C-グロス" : 
-              scope.row.unitcode === 33 ? "大宮C-ｿｰﾃｨﾝｸﾞ店別" : 
-              scope.row.unitcode === 34 ? "大宮C-ｿｰﾃｨﾝｸﾞ店別第2" : 
-              scope.row.unitcode === 35 ? "大宮C-ｲﾝﾍﾞﾝﾄﾘｰ②兼夜間仕分" : 
-              scope.row.unitcode === 36 ? "大宮C-事務所/ｲﾝﾍﾞﾝﾄﾘｰ" : 
-              scope.row.unitcode === 41 ? "浮島C-ｲﾝﾍﾞﾝﾄﾘｰ/事務" : 
-              scope.row.unitcode === 42 ? "浮島C-ｿｰﾃｨﾝｸﾞ店別" : 
-              scope.row.unitcode === 43 ? "浮島C-ｿｰﾃｨﾝｸﾞ店別②" : 
-              scope.row.unitcode === 44 ? "浮島C-ｿｰﾃｨﾝｸﾞ店別③" : 
-              scope.row.unitcode === 61 ? "厚木C-事務所/ｲﾝﾍﾞﾝﾄﾘｰ" : 
-              scope.row.unitcode === 62 ? "厚木C-ｸﾞﾛｽ" : 
-              scope.row.unitcode === 63 ? "厚木C-ｿｰﾃｨﾝｸﾞ店別①" : 
-              scope.row.unitcode === 64 ? "厚木C-ｿｰﾃｨﾝｸﾞ店別②" : 
-              scope.row.unitcode === 92 ? "岩槻C-事務所/ｲﾝﾍﾞﾝﾄﾘｰ" : 
-              scope.row.unitcode === 93 ? "岩槻C-ｿｰﾃｨﾝｸﾞ店別" : 
-              scope.row.unitcode === 1031 ? "第1 BPﾕﾆｯﾄ" : 
-              scope.row.unitcode === 1155 ? "大宮C-ＬＤﾕﾆｯﾄ" : 
-              scope.row.unitcode === 1195 ? "岩槻C-ＬＤﾕﾆｯﾄ" : 
-              scope.row.unitcode === 1245 ? "浮島C-ＬＤﾕﾆｯﾄ" : 
-              scope.row.unitcode === 1615 ? "厚木C-ＬＤﾕﾆｯﾄ" : 
-              "不明"
-              }}
-        </template>
-      </el-table-column>
-
-      <el-table-column prop="occupationcode" label="業種" width="120">
-        <template slot-scope="scope">
-
-              {{ 
-              scope.row.occupationcode === 7 ? "経理" : 
-              scope.row.occupationcode === 1? "ドライバー" : 
-              scope.row.occupationcode === 34 ? "ローディング" : 
-              scope.row.occupationcode === 15 ? "センター管理・入庫" : 
-              scope.row.occupationcode === 38 ? "ソーティング・グロス" : 
-              scope.row.occupationcode === 37 ? "ソーティング・点別" : 
-              scope.row.occupationcode === 33 ? "インベトリー・事務" : 
-              scope.row.occupationcode === 22 ? "SC・一般" : 
-              scope.row.occupationcode === 32 ? "営業" : 
-              scope.row.occupationcode === 23 ? "SC・一般" : 
-              scope.row.occupationcode === 35 ? "インベトリー・現場" : 
-              scope.row.occupationcode === 39 ? "SC・一般" : 
-              scope.row.occupationcode === 16 ? "グロス在庫管理" : 
-              scope.row.occupationcode === 5 ? "事務職" : 
-              scope.row.occupationcode === 6 ? "情報システム" : 
-              scope.row.occupationcode === 2 ? "オペレーター" : 
-              scope.row.occupationcode === 25 ? "SC・一般" : 
-              scope.row.occupationcode === 17 ? "種まき・出荷" : 
-              scope.row.occupationcode === 21 ? "SC・一般" : 
-              scope.row.occupationcode === 18 ? "SC・一般" : 
-              scope.row.occupationcode === 26 ? "SC・一般" : 
-              scope.row.occupationcode === 41 ? "SC・一般" : 
-              scope.row.occupationcode === 24 ? "SC・一般" : 
-              scope.row.occupationcode === 28 ? "SC・一般" : 
-              scope.row.occupationcode === 40 ? "SC・一般" : 
-              scope.row.occupationcode === 20 ? "SC・一般" : 
-              scope.row.occupationcode === 31 ? "SC・一般" : 
-              scope.row.occupationcode === 19 ? "SC・一般" : 
-              scope.row.occupationcode === 29 ? "SC・一般" : 
-              scope.row.occupationcode === 9 ? "エリアマネージャー" : 
-              "不明"
-              }}
-
-        </template>
-      </el-table-column>
-
-      <el-table-column prop="jobtitlecode" label="役職" width="100">
-        <template slot-scope="scope">
-
-              {{ scope.row.jobtitlecode === 3 ? "チーフ" : 
-              scope.row.jobtitlecode === 4 ? "リーダー" : 
-              scope.row.jobtitlecode === 2 ? "クール" : 
-              scope.row.jobtitlecode === 7 ? "統括マネージャー" : 
-              scope.row.jobtitlecode === 5 ? "サブマネージャー" : 
-              scope.row.jobtitlecode === 1 ? "サブクルー" : 
-              scope.row.jobtitlecode === 6 ? "マネージャー" : 
-              scope.row.jobtitlecode === 11 ? "再雇用社員" : 
-              scope.row.jobtitlecode === 10 ? "再雇用SC" : 
-              "未定"
-              }}
-
-        </template>
-      </el-table-column>
-
-      <el-table-column prop="organizationcode" label="組織" width="200">
-        <template slot-scope="scope">
-
-              {{ scope.row.organizationcode === 1 ? "北王流通株式会社" : 
-              scope.row.organizationcode === 2 ? "北王デリバリー" : 
-              scope.row.organizationcode === 3 ? "北王フードベース" : 
-              scope.row.organizationcode === 4 ? "北王Gurop" : 
-              "不明"
-              }}
-
-        </template>
-      </el-table-column>
-<!-- 
-      <el-table-column prop="sex" label="性别" width="80">
-        <template slot-scope="scope">
-          <el-tag
-              :type="scope.row.sex === 1 ? 'primary' : 'success'"
-              disable-transitions>{{ scope.row.sex === 1 ? '男' : '女' }}
-          </el-tag>
-        </template>
-      </el-table-column> -->
-      <!-- <el-table-column prop="roleId" label="角色" width="120">
-        <template slot-scope="scope">
-          <el-tag
-              :type="scope.row.roleId === 0 ? 'danger' : (scope.row.roleId === 1 ? 'primary' : 'success')"
-              disable-transitions>{{
-              scope.row.roleId === 0 ? '超级管理员' :
-                  (scope.row.roleId === 1 ? '管理员' : '用户')
-            }}
-          </el-tag>
-        </template>
-      </el-table-column> -->
-      <!-- <el-table-column prop="phone" label="电话">
-      </el-table-column> -->
-    </el-table>
-    <el-pagination
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :current-page="pageNum"
-        :page-sizes="[5, 10, 20,30]"
-        :page-size="pageSize"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total">
-    </el-pagination>
-
+    <!-- 詳細ダイアログ -->
     <el-dialog
-        title="提示"
-        :visible.sync="centerDialogVisible"
-        width="30%"
-        center>
-
-      <el-form ref="form" :rules="rules" :model="form" label-width="80px">
+      title="社員情報"
+      :visible.sync="centerDialogVisible"
+      width="560px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      class="custom-dialog"
+    >
+      <el-form
+        ref="form"
+        :rules="rules"
+        :model="form"
+        label-width="110px"
+        class="custom-form"
+      >
         <el-form-item label="ID" prop="no">
-          <el-col :span="20">
-            <el-input v-model="form.no"></el-input>
-          </el-col>
+          <el-input v-model="form.no" />
         </el-form-item>
+
         <el-form-item label="社員番号" prop="id">
-          <el-col :span="20">
-            <el-input v-model="form.no"></el-input>
-          </el-col>
+          <el-input v-model="form.id" />
         </el-form-item>
+
         <el-form-item label="名前" prop="name">
-          <el-col :span="20">
-            <el-input v-model="form.name"></el-input>
-          </el-col>
+          <el-input v-model="form.name" />
         </el-form-item>
 
         <el-form-item label="営業所">
-          <el-select v-model="form.unitcode" placeholder="営業所選択">
-            <el-option label="管理本部" :value="1"></el-option>
-            <el-option label="業務本部" :value="3"></el-option>
-            <el-option label="川口ﾕﾆｯﾄ" :value="10"></el-option>
-            <el-option label="大宮ﾕﾆｯﾄ" :value="14"></el-option>
-            <el-option label="横浜ﾕﾆｯﾄ" :value="18"></el-option>
-            <el-option label="船橋ﾕﾆｯﾄ" :value="22"></el-option>
-            <el-option label="浮島ﾕﾆｯﾄ" :value="23"></el-option>
-            <el-option label="厚木ﾕﾆｯﾄ" :value="27"></el-option>
-            <el-option label="鴻巣ﾕﾆｯﾄ" :value="28"></el-option>
-            <el-option label="大宮C-ｲﾝﾍﾞﾝﾄﾘｰ①兼日中ｸﾞﾛｽ" :value="31"></el-option>
-            <el-option label="大宮C-グロス" :value="32"></el-option>
-            <el-option label="大宮C-ｿｰﾃｨﾝｸﾞ店別" :value="33"></el-option>
-            <el-option label="大宮C-ｿｰﾃｨﾝｸﾞ店別第2" :value="34"></el-option>
-            <el-option label="大宮C-ｲﾝﾍﾞﾝﾄﾘｰ②兼夜間仕分" :value="35"></el-option>
-            <el-option label="大宮C-事務所/ｲﾝﾍﾞﾝﾄﾘｰ" :value="36"></el-option>
-            <el-option label="浮島C-ｲﾝﾍﾞﾝﾄﾘｰ/事務" :value="41"></el-option>
-            <el-option label="浮島C-ｿｰﾃｨﾝｸﾞ店別" :value="42"></el-option>
-            <el-option label="浮島C-ｿｰﾃｨﾝｸﾞ店別②" :value="43"></el-option>
-            <el-option label="浮島C-ｿｰﾃｨﾝｸﾞ店別③" :value="44"></el-option>
-            <el-option label="厚木C-事務所/ｲﾝﾍﾞﾝﾄﾘｰ" :value="61"></el-option>
-            <el-option label="厚木C-ｸﾞﾛｽ" :value="62"></el-option>
-            <el-option label="厚木C-ｿｰﾃｨﾝｸﾞ店別①" :value="63"></el-option>
-            <el-option label="厚木C-ｿｰﾃｨﾝｸﾞ店別②" :value="64"></el-option>
-            <el-option label="岩槻C-事務所/ｲﾝﾍﾞﾝﾄﾘｰ" :value="92"></el-option>
-            <el-option label="岩槻C-ｿｰﾃｨﾝｸﾞ店別" :value="93"></el-option>
-            <el-option label="第1 BPﾕﾆｯﾄ" :value="1031"></el-option>
-            <el-option label="大宮C-ＬＤﾕﾆｯﾄ" :value="1155"></el-option>
-            <el-option label="岩槻C-ＬＤﾕﾆｯﾄ" :value="1195"></el-option>
-            <el-option label="浮島C-ＬＤﾕﾆｯﾄ" :value="1245"></el-option>
-            <el-option label="厚木C-ＬＤﾕﾆｯﾄ" :value="1615"></el-option>
+          <el-select
+            v-model="form.unitcode"
+            placeholder="営業所選択"
+            filterable
+            clearable
+            class="full-width"
+          >
+            <el-option
+              v-for="item in unitOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
           </el-select>
         </el-form-item>
 
         <el-form-item label="業種">
-          <el-select v-model="form.occupationcode" placeholder="業種選択">
-            <el-option label="経理" value="7"></el-option>
-            <el-option label="ドライバー" value="1"></el-option>
-            <el-option label="ローディング" value="34"></el-option>
-            <el-option label="センター管理・入庫" value="15"></el-option>
-            <el-option label="ソーティング・グロス" value="38"></el-option>
-            <el-option label="ソーティング・点別" value="37"></el-option>
-            <el-option label="インベトリー・事務" value="33"></el-option>
-            <el-option label="営業" value="32"></el-option>
-            <el-option label="インベトリー・現場" value="35"></el-option>
-            <el-option label="グロス在庫管理" value="16"></el-option>
-            <el-option label="情報システム" value="6"></el-option>
-            <el-option label="オペレーター" value="2"></el-option>
-            <el-option label="種まき・出荷" value="17"></el-option>
-            <el-option label="SC・一般" value="21,18,26,41,24,28,40,20,31,19,29,22,23,39,25"></el-option>
+          <el-select
+            v-model="form.occupationcode"
+            placeholder="業種選択"
+            filterable
+            clearable
+            class="full-width"
+          >
+            <el-option
+              v-for="item in occupationOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
           </el-select>
         </el-form-item>
 
         <el-form-item label="役職">
-          <el-select v-model="form.jobtitlecode" placeholder="役職選択">
-            <el-option label="クルー" value="2"></el-option>
-            <el-option label="チーフ" value="3"></el-option>
-            <el-option label="リーダー" value="4"></el-option>
-            <el-option label="サブクルー" value="1"></el-option>
-            <el-option label="マネージャー" value="6"></el-option>
-            <el-option label="統括マネージャーー" value="7"></el-option>
-            <el-option label="再雇用社員" value="11"></el-option>
-            <el-option label="再雇用サブクルー" value="10"></el-option>
-            <el-option label="サブマネージャー" value="5"></el-option>
+          <el-select
+            v-model="form.jobtitlecode"
+            placeholder="役職選択"
+            filterable
+            clearable
+            class="full-width"
+          >
+            <el-option
+              v-for="item in jobTitleOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
           </el-select>
         </el-form-item>
 
         <el-form-item label="組織">
-          <el-select v-model="form.organizationcode" placeholder="組織選択">
-            <el-option label="北王流通株式会社" value="1"></el-option>
-            <el-option label="北王デリバリー" value="2"></el-option>
-            <el-option label="北王フードベース" value="3"></el-option>
-            <el-option label="北王Group" value="4"></el-option>
+          <el-select
+            v-model="form.organizationcode"
+            placeholder="組織選択"
+            filterable
+            clearable
+            class="full-width"
+          >
+            <el-option
+              v-for="item in organizationOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
           </el-select>
         </el-form-item>
-
-        <!-- <el-form-item label="密码" prop="password">
-          <el-col :span="20">
-            <el-input v-model="form.password"></el-input>
-          </el-col>
-        </el-form-item>
-        <el-form-item label="年龄" prop="age">
-          <el-col :span="20">
-            <el-input v-model="form.age"></el-input>
-          </el-col>
-        </el-form-item>
-        <el-form-item label="性别">
-          <el-radio-group v-model="form.sex">
-            <el-radio label="1">男</el-radio>
-            <el-radio label="0">女</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="电话" prop="phone">
-          <el-col :span="20">
-            <el-input v-model="form.phone"></el-input>
-          </el-col>
-        </el-form-item> -->
       </el-form>
+
       <span slot="footer" class="dialog-footer">
-    <el-button @click="centerDialogVisible = false">取　消</el-button>
-    <el-button type="primary" @click="save">確　定</el-button>
-  </span>
+        <el-button @click="centerDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="save">確定</el-button>
+      </span>
     </el-dialog>
   </div>
 </template>
@@ -307,98 +193,322 @@ export default {
       pageSize: 10,
       pageNum: 1,
       total: 0,
-      name: '',
+      name: "",
 
       centerDialogVisible: false,
       form: {
-        id: '',
-        no: '',
-        name: '',
-        unitcode: '',
-        occupationcode: '',
-        jobtitlecode: '',
-        organizationcode: '',
-        // roleId: '2'
+        id: "",
+        no: "",
+        name: "",
+        unitcode: "",
+        occupationcode: "",
+        jobtitlecode: "",
+        organizationcode: ""
       },
+
+      rules: {},
+
+      // DBマスタ
+      unitList: [],
+      authorityList: []
+    };
+  },
+
+  computed: {
+    unitOptions() {
+      return (this.unitList || []).map(item => ({
+        label: item.name,
+        value: Number(item.unitcode)
+      }));
+    },
+
+    occupationOptions() {
+      const map = new Map();
+      (this.authorityList || []).forEach(item => {
+        if (item.occupationcode != null && item.occupationnm) {
+          map.set(Number(item.occupationcode), item.occupationnm);
+        }
+      });
+      return Array.from(map, ([value, label]) => ({ value, label }));
+    },
+
+    jobTitleOptions() {
+      const map = new Map();
+      (this.authorityList || []).forEach(item => {
+        if (item.jobtitlecode != null && item.jobtitlenm) {
+          map.set(Number(item.jobtitlecode), item.jobtitlenm);
+        }
+      });
+      return Array.from(map, ([value, label]) => ({ value, label }));
+    },
+
+    organizationOptions() {
+      const map = new Map();
+      (this.authorityList || []).forEach(item => {
+        if (item.organizationcode != null && item.columnName) {
+          map.set(Number(item.organizationcode), item.columnName);
+        }
+      });
+      return Array.from(map, ([value, label]) => ({ value, label }));
     }
   },
+
   methods: {
+    loadUnits() {
+      this.$axios
+        .get(this.$httpUrl + "/unit/list")
+        .then(res => {
+          this.unitList = res.data || [];
+        })
+        .catch(err => {
+          console.error("unit取得失敗", err);
+          this.unitList = [];
+        });
+    },
+
+    loadAuthorities() {
+      this.$axios
+        .get(this.$httpUrl + "/m-authority/list")
+        .then(res => {
+          this.authorityList = res.data || [];
+        })
+        .catch(err => {
+          console.error("authority取得失敗", err);
+          this.authorityList = [];
+        });
+    },
+
+    getUnitName(code) {
+      const item = this.unitOptions.find(v => Number(v.value) === Number(code));
+      return item ? item.label : "不明";
+    },
+
+    getOccupationName(code) {
+      const item = this.occupationOptions.find(v => Number(v.value) === Number(code));
+      return item ? item.label : "不明";
+    },
+
+    getJobTitleName(code) {
+      const item = this.jobTitleOptions.find(v => Number(v.value) === Number(code));
+      return item ? item.label : "未定";
+    },
+
+    getOrganizationName(code) {
+      const item = this.organizationOptions.find(v => Number(v.value) === Number(code));
+      return item ? item.label : "不明";
+    },
+
     resetForm() {
-      this.$refs.form.resetFields();
-    },
-    mod(row) {
-      console.log(row)
+      this.form = {
+        id: "",
+        no: "",
+        name: "",
+        unitcode: "",
+        occupationcode: "",
+        jobtitlecode: "",
+        organizationcode: ""
+      };
 
-      this.centerDialogVisible = true
       this.$nextTick(() => {
-        //赋值到表单
-        this.form.id = row.id
-        this.form.no = row.no             
-        this.form.name = row.name
-        this.form.unitcode = row.unitcode===1?'管理本部':row.unitcode===4?'人事室':
-        row.unitcode===3?'業務本部':row.unitcode===10?'川口U':'不明'
-        this.form.occupationcode = row.occupationcode===6?'荷役':row.occupationcode===7?'ドライバー'
-        :row.occupationcode===8?'事務員':'不明'
-        this.form.jobtitlecode = row.jobtitlecode===2?'クール':row.jobtitlecode===3?'チーフ':
-        row.jobtitlecode===4?'リーダー':'未定'
-        // this.form.jobtitlecode = row.sex + ''
-        this.form.organizationcode = row.organizationcode===1?'北王流通株式会社':row.organizationcode===2?'北王デリバリー':
-        row.organizationcode===3?'北王フードベース':
-        this.form.roleid = row.roleid
-      })
-    },
-    handleSizeChange(val) {
-      console.log(`每页 ${val} 条`);
-      this.pageNum = 1
-      this.pageSize = val
-      this.loadPost()
-    },
-    handleCurrentChange(val) {
-      console.log(`当前页: ${val}`);
-      this.pageNum = val
-      this.loadPost()
-    },
-    loadGet() {
-      this.$axios.get(this.$httpUrl + '/user/listP').then(res => res.data).then(res => {
-        console.log(res)
-      })
-    },
-    resetParam() {
-      this.name = ''
-      this.sex = ''
-    },
-    selectCurrentChange(val) {
-      //this.currentRow = val;
-      this.$emit("doSelectUser", val)
-    },
-    loadPost() {
-      this.$axios.post(this.$httpUrl + '/user/listPageC1', {
-        pageSize: this.pageSize,
-        pageNum: this.pageNum,
-        param: {
-          name: this.name,
-          // sex: this.sex,
-          // roleId: '2'
+        if (this.$refs.form) {
+          this.$refs.form.clearValidate();
         }
-      }).then(res => res.data).then(res => {
-        console.log(res)
-        if (res.code == 200) {
-          this.tableData = res.data
-          this.total = res.total
-        } else {
-          alert('获取数据失败')
-        }
+      });
+    },
 
-      })
+    mod(row) {
+      this.centerDialogVisible = true;
+      this.$nextTick(() => {
+        this.form.id = row.id;
+        this.form.no = row.no;
+        this.form.name = row.name;
+        this.form.unitcode =
+          row.unitcode === null || row.unitcode === undefined ? "" : Number(row.unitcode);
+        this.form.occupationcode =
+          row.occupationcode === null || row.occupationcode === undefined
+            ? ""
+            : Number(row.occupationcode);
+        this.form.jobtitlecode =
+          row.jobtitlecode === null || row.jobtitlecode === undefined
+            ? ""
+            : Number(row.jobtitlecode);
+        this.form.organizationcode =
+          row.organizationcode === null || row.organizationcode === undefined
+            ? ""
+            : Number(row.organizationcode);
+      });
+    },
+
+    save() {
+      this.centerDialogVisible = false;
+    },
+
+    handleSizeChange(val) {
+      this.pageNum = 1;
+      this.pageSize = val;
+      this.loadPost();
+    },
+
+    handleCurrentChange(val) {
+      this.pageNum = val;
+      this.loadPost();
+    },
+
+    resetParam() {
+      this.name = "";
+      this.pageNum = 1;
+      this.loadPost();
+    },
+
+    selectCurrentChange(val) {
+      this.$emit("doSelectUser", val);
+    },
+
+    search() {
+      this.pageNum = 1;
+      this.loadPost();
+    },
+
+    loadPost() {
+      this.$axios
+        .post(this.$httpUrl + "/user/listPageC1", {
+          pageSize: this.pageSize,
+          pageNum: this.pageNum,
+          param: {
+            name: this.name
+          }
+        })
+        .then(res => res.data)
+        .then(res => {
+          if (res.code == 200) {
+            this.tableData = res.data;
+            this.total = res.total;
+          } else {
+            this.$message.error("データ取得失敗");
+          }
+        })
+        .catch(() => {
+          this.$message.error("データ取得に失敗しました");
+        });
     }
   },
+
   beforeMount() {
-    //this.loadGet();
-    this.loadPost()
+    this.loadUnits();
+    this.loadAuthorities();
+    this.loadPost();
   }
-}
+};
 </script>
 
 <style scoped>
+.select-user-page {
+  padding: 20px;
+  background: #f7f8fa;
+  min-height: 100%;
+  box-sizing: border-box;
+}
 
+.page-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.search-input {
+  width: 260px;
+}
+
+.custom-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.custom-dialog /deep/ .el-dialog {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.custom-dialog /deep/ .el-dialog__header {
+  background: linear-gradient(90deg, #409eff, #66b1ff);
+  padding: 18px 20px;
+}
+
+.custom-dialog /deep/ .el-dialog__title {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.custom-dialog /deep/ .el-dialog__body {
+  padding: 24px 24px 10px;
+}
+
+.custom-form /deep/ .el-form-item__label {
+  font-weight: 600;
+  color: #303133;
+}
+
+.custom-form /deep/ .el-input__inner,
+.custom-form /deep/ .el-select .el-input__inner {
+  border-radius: 8px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 0 5px;
+}
+
+.dialog-footer .el-button {
+  min-width: 100px;
+  border-radius: 8px;
+}
+
+@media screen and (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-left {
+    width: 100%;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .pagination-wrap {
+    justify-content: center;
+  }
+}
 </style>

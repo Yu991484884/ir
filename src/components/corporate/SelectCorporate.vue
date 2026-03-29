@@ -1,63 +1,93 @@
 <template>
-  <div>
-    <div style="margin-bottom: 5px;">
-      <el-input v-model="corporateentity" placeholder="企業体検索" suffix-icon="el-icon-search" style="width: 200px;"
-                @keyup.enter.native="loadPost"></el-input>
+  <div class="select-corporate-page">
+    <div class="page-card">
+      <!-- 検索エリア -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <el-input
+            v-model="corporateentity"
+            class="search-input"
+            placeholder="企業体名を入力してください"
+            prefix-icon="el-icon-search"
+            clearable
+            @keyup.enter.native="loadPost"
+          />
+          <el-button type="primary" icon="el-icon-search" @click="loadPost">
+            検索
+          </el-button>
+          <el-button icon="el-icon-refresh-left" @click="resetParam">
+            クリア
+          </el-button>
+        </div>
+      </div>
 
-      <el-button type="primary" style="margin-left: 5px;" @click="loadPost">検索</el-button>
-      <el-button type="success" @click="resetParam">クリア</el-button>
+      <!-- テーブル -->
+      <el-table
+        :data="tableData"
+        border
+        stripe
+        highlight-current-row
+        class="custom-table"
+        :header-cell-style="{
+          background: '#f5f7fa',
+          color: '#303133',
+          fontWeight: '600'
+        }"
+        @current-change="selectCurrentChange"
+      >
+        <el-table-column prop="no" label="ID" width="80" align="center" />
+        <el-table-column prop="id" label="企業体番号" width="180" align="center" />
+        <el-table-column prop="corporateentity" label="企業体名" min-width="260" />
+      </el-table>
 
+      <!-- ページネーション -->
+      <div class="pagination-wrap">
+        <el-pagination
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :current-page="pageNum"
+          :page-sizes="[5, 10, 20, 30]"
+          :page-size="pageSize"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          background
+        />
+      </div>
     </div>
-    <el-table :data="tableData"
-              :header-cell-style="{ background: '#f2f5fc', color: '#555555' }"
-              border
-              highlight-current-row
-              @current-change="selectCurrentChange">
-      <el-table-column prop="no" label="ID" width="60">
-      </el-table-column>
-      <el-table-column prop="id" label="企業体番号" width="180">
-      </el-table-column>
-      <el-table-column prop="corporateentity" label="企業体名" width="300">
-      </el-table-column>
 
-    </el-table>
-    <el-pagination
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :current-page="pageNum"
-        :page-sizes="[5, 10, 20,30]"
-        :page-size="pageSize"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total">
-    </el-pagination>
-
+    <!-- 詳細ダイアログ -->
     <el-dialog
-        title="提示"
-        :visible.sync="centerDialogVisible"
-        width="30%"
-        center>
-
-      <el-form ref="form" :rules="rules" :model="form" label-width="80px">
+      title="企業体情報"
+      :visible.sync="centerDialogVisible"
+      width="560px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      class="custom-dialog"
+    >
+      <el-form
+        ref="form"
+        :rules="rules"
+        :model="form"
+        label-width="110px"
+        class="custom-form"
+      >
         <el-form-item label="ID" prop="no">
-          <el-col :span="20">
-            <el-input v-model="form.no"></el-input>
-          </el-col>
+          <el-input v-model="form.no" />
         </el-form-item>
+
         <el-form-item label="企業体番号" prop="id">
-          <el-col :span="20">
-            <el-input v-model="form.id"></el-input>
-          </el-col>
+          <el-input v-model="form.id" />
         </el-form-item>
+
         <el-form-item label="企業体名" prop="corporateentity">
-          <el-col :span="20">
-            <el-input v-model="form.corporateentity"></el-input>
-          </el-col>
+          <el-input v-model="form.corporateentity" />
         </el-form-item>
       </el-form>
+
       <span slot="footer" class="dialog-footer">
-    <el-button @click="centerDialogVisible = false">取 消</el-button>
-    <el-button type="primary" @click="save">确 定</el-button>
-  </span>
+        <el-button @click="centerDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="save">確定</el-button>
+      </span>
     </el-dialog>
   </div>
 </template>
@@ -71,81 +101,198 @@ export default {
       pageSize: 10,
       pageNum: 1,
       total: 0,
-      corporateentity: '',
+      corporateentity: "",
 
       centerDialogVisible: false,
       form: {
-        id: '',
-        no: '',
-        corporateentity: '',
+        id: "",
+        no: "",
+        corporateentity: ""
       },
-    }
+      rules: {}
+    };
   },
   methods: {
     resetForm() {
-      this.$refs.form.resetFields();
-    },
-    mod(row) {
-      console.log(row)
+      this.form = {
+        id: "",
+        no: "",
+        corporateentity: ""
+      };
 
-      this.centerDialogVisible = true
       this.$nextTick(() => {
-        //赋值到表单
-        this.form.id = row.id
-        this.form.no = row.no             
-        this.form.corporateentity = row.corporateentity
-      })
-    },
-    handleSizeChange(val) {
-      console.log(`每页 ${val} 条`);
-      this.pageNum = 1
-      this.pageSize = val
-      this.loadPost()
-    },
-    handleCurrentChange(val) {
-      console.log(`当前页: ${val}`);
-      this.pageNum = val
-      this.loadPost()
-    },
-    loadGet() {
-      this.$axios.get(this.$httpUrl + '/corporate/listP').then(res => res.data).then(res => {
-        console.log(res)
-      })
-    },
-    resetParam() {
-      this.name = ''
-      // this.sex = ''
-    },
-    selectCurrentChange(val) {
-      //this.currentRow = val;
-      this.$emit("doSelectCorporate", val)
-    },
-    loadPost() {
-      this.$axios.post(this.$httpUrl + '/corporate/listPageC1', {
-        pageSize: this.pageSize,
-        pageNum: this.pageNum,
-        param: {
-          corporateentity: this.corporateentity,
+        if (this.$refs.form) {
+          this.$refs.form.clearValidate();
         }
-      }).then(res => res.data).then(res => {
-        console.log(res)
-        if (res.code == 200) {
-          this.tableData = res.data
-          this.total = res.total
-        } else {
-          alert('获取数据失败')
-        }
+      });
+    },
 
-      })
+    mod(row) {
+      this.centerDialogVisible = true;
+      this.$nextTick(() => {
+        this.form.id = row.id;
+        this.form.no = row.no;
+        this.form.corporateentity = row.corporateentity;
+      });
+    },
+
+    save() {
+      this.centerDialogVisible = false;
+    },
+
+    handleSizeChange(val) {
+      this.pageNum = 1;
+      this.pageSize = val;
+      this.loadPost();
+    },
+
+    handleCurrentChange(val) {
+      this.pageNum = val;
+      this.loadPost();
+    },
+
+    resetParam() {
+      this.corporateentity = "";
+      this.pageNum = 1;
+      this.loadPost();
+    },
+
+    selectCurrentChange(val) {
+      this.$emit("doSelectCorporate", val);
+    },
+
+    loadPost() {
+      this.$axios
+        .post(this.$httpUrl + "/corporate/listPageC1", {
+          pageSize: this.pageSize,
+          pageNum: this.pageNum,
+          param: {
+            corporateentity: this.corporateentity
+          }
+        })
+        .then(res => res.data)
+        .then(res => {
+          if (res.code == 200) {
+            this.tableData = res.data;
+            this.total = res.total;
+          } else {
+            this.$message.error("データ取得失敗");
+          }
+        })
+        .catch(() => {
+          this.$message.error("データ取得に失敗しました");
+        });
     }
   },
   beforeMount() {
-    //this.loadGet();
-    this.loadPost()
+    this.loadPost();
   }
-}
+};
 </script>
 
 <style scoped>
+.select-corporate-page {
+  padding: 20px;
+  background: #f7f8fa;
+  min-height: 100%;
+  box-sizing: border-box;
+}
 
+.page-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.search-input {
+  width: 260px;
+}
+
+.custom-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.custom-dialog /deep/ .el-dialog {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.custom-dialog /deep/ .el-dialog__header {
+  background: linear-gradient(90deg, #409eff, #66b1ff);
+  padding: 18px 20px;
+}
+
+.custom-dialog /deep/ .el-dialog__title {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.custom-dialog /deep/ .el-dialog__body {
+  padding: 24px 24px 10px;
+}
+
+.custom-form /deep/ .el-form-item__label {
+  font-weight: 600;
+  color: #303133;
+}
+
+.custom-form /deep/ .el-input__inner {
+  border-radius: 8px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 0 5px;
+}
+
+.dialog-footer .el-button {
+  min-width: 100px;
+  border-radius: 8px;
+}
+
+@media screen and (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-left {
+    width: 100%;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .pagination-wrap {
+    justify-content: center;
+  }
+}
 </style>

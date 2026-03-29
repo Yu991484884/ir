@@ -1,573 +1,927 @@
 <template>
-  <div>
-    <div style="margin-bottom: 5px;">
-      <el-input v-model="factor" placeholder="要因検索" suffix-icon="el-icon-search" style="width: 200px;"
-                @keyup.enter.native="loadPost"></el-input>
-      <el-button type="primary" style="margin-left: 5px;" @click="loadPost">検索</el-button>
-      <el-button type="success" @click="resetParam">クリア</el-button>
-      
-      <!-- 要因の新規登録が要因別管理の画面より登録する、この画面で追加しても可能ですが、下記のコメントを解除必要です。 -->
-      <!-- <el-button type="primary" style="margin-left: 5px;" @click="add" >要因　新規</el-button> -->
-      <el-button type="primary" style="margin-left: 5px;" @click="inGoods" >IR新規登録</el-button>
-      <!-- <el-button type="primary" style="margin-left: 5px;" @click="outGoods">出库</el-button> -->
+  <div class="goods-manage-page">
+    <div class="page-card">
+      <!-- 検索エリア -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <el-input
+            v-model="factor"
+            class="search-input"
+            placeholder="要因名を入力してください"
+            prefix-icon="el-icon-search"
+            clearable
+            @keyup.enter.native="loadPost"
+          />
+          <el-button type="primary" icon="el-icon-search" @click="loadPost">
+            検索
+          </el-button>
+          <el-button icon="el-icon-refresh-left" @click="resetParam">
+            クリア
+          </el-button>
+        </div>
+
+        <div class="toolbar-right">
+          <!-- 要因新規登録を使う場合は解除 -->
+          <!-- <el-button type="primary" icon="el-icon-plus" @click="add">要因 新規</el-button> -->
+          <el-button type="primary" icon="el-icon-plus" @click="inGoods">
+            IR新規登録
+          </el-button>
+        </div>
+      </div>
+
+      <!-- テーブル -->
+      <el-table
+        :data="tableData"
+        border
+        stripe
+        highlight-current-row
+        class="custom-table"
+        :header-cell-style="{
+          background: '#f5f7fa',
+          color: '#303133',
+          fontWeight: '600'
+        }"
+        @current-change="selectCurrentChange"
+      >
+        <el-table-column prop="no" label="ID" width="80" align="center" />
+        <el-table-column prop="id" label="管理番号" width="120" align="center" />
+        <el-table-column prop="factor" label="要因名称" min-width="220" />
+        <el-table-column prop="comment" label="備考" min-width="240" />
+      </el-table>
+
+      <!-- ページネーション -->
+      <div class="pagination-wrap">
+        <el-pagination
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :current-page="pageNum"
+          :page-sizes="[5, 10, 20, 30]"
+          :page-size="pageSize"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          background
+        />
+      </div>
     </div>
 
-    <!-- 选中当前行 单机事件 -->
-    <el-table :data="tableData"
-              :header-cell-style="{ background: '#f2f5fc', color: '#555555' }"
-              border
-              highlight-current-row
-              @current-change="selectCurrentChange">
-      <el-table-column prop="no" label="ID" width="60">
-      </el-table-column>
-      <el-table-column prop="id" label="管理番号" width="100">
-      </el-table-column>
-      <el-table-column prop="factor" label="要因名称" width="200">
-      </el-table-column>
-      <!-- <el-table-column prop="storage" label="仓库" width="180" :formatter="formatStorage">
-      </el-table-column>
-      <el-table-column prop="goodstype" label="分类" width="180" :formatter="formatGoodstype">
-      </el-table-column>
-      <el-table-column prop="count" label="数量" width="180">
-      </el-table-column> -->
-      <el-table-column prop="comment" label="備考" width="200">
-      </el-table-column>
-
-      <!-- <el-table-column prop="operate" label="操作" v-if="user.roleId!=2">
-        <template slot-scope="scope">
-          <el-button size="small" type="success" @click="mod(scope.row)">编辑</el-button>
-          <el-popconfirm
-              title="确定删除吗？"
-              @confirm="del(scope.row.no)"
-              style="margin-left: 5px;">
-            <el-button slot="reference" size="small" type="danger">删除</el-button>
-          </el-popconfirm>
-        </template>
-      </el-table-column> -->
-
-    </el-table>
-    <el-pagination
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :current-page="pageNum"
-        :page-sizes="[5, 10, 20,30]"
-        :page-size="pageSize"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total">
-    </el-pagination>
-
+    <!-- 要因新規登録ダイアログ -->
     <el-dialog
-        title="要因新規登録"
-        :visible.sync="centerDialogVisible"
-        width="30%"
-        center>
-
-      <el-form ref="form" :rules="rules" :model="form" label-width="80px">
+      title="要因新規登録"
+      :visible.sync="centerDialogVisible"
+      width="560px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      class="custom-dialog"
+    >
+      <el-form
+        ref="form"
+        :rules="rules"
+        :model="form"
+        label-width="100px"
+        class="custom-form"
+      >
         <el-form-item label="管理番号" prop="id">
-          <el-col :span="20">
-            <el-input v-model="form.id"></el-input>
-          </el-col>
+          <el-input v-model="form.id" placeholder="管理番号を入力" clearable />
         </el-form-item>
+
         <el-form-item label="要因名称" prop="factor">
-          <el-col :span="20">
-            <el-input v-model="form.factor"></el-input>
-          </el-col>
+          <el-input v-model="form.factor" placeholder="要因名称を入力" clearable />
         </el-form-item>
+
         <el-form-item label="備考" prop="comment">
-          <el-col :span="20">
-            <el-input type="textarea"  v-model="form.comment"></el-input>
-          </el-col>
+          <el-input
+            type="textarea"
+            :rows="3"
+            v-model="form.comment"
+            placeholder="備考を入力"
+          />
         </el-form-item>
       </el-form>
+
       <span slot="footer" class="dialog-footer">
-    <el-button @click="centerDialogVisible = false">取 消</el-button>
-    <el-button type="primary" @click="save">确 定</el-button>
-  </span>
+        <el-button @click="centerDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="save">確定</el-button>
+      </span>
     </el-dialog>
 
+    <!-- IR登録ダイアログ -->
     <el-dialog
-        title="IR登録"
-        :visible.sync="inDialogVisible"
-        width="50%"
-        center>
-      <!-- 内嵌套 页面 就是点击新增的页面 然后在点击申请人按钮 又会跳出 另一个输入框  -->
+      title="IR登録"
+      :visible.sync="inDialogVisible"
+      width="760px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      class="custom-dialog"
+    >
+      <!-- 起因者選択 -->
       <el-dialog
-          width="75%"
-          title="起因者選択"
-          :visible.sync="innerVisible"
-          append-to-body>
+        width="75%"
+        title="起因者選択"
+        :visible.sync="innerVisible"
+        append-to-body
+        class="inner-dialog"
+      >
         <SelectUser @doSelectUser="doSelectUser"></SelectUser>
         <span slot="footer" class="dialog-footer">
-                    <el-button @click="innerVisible = false">取 消</el-button>
-                    <el-button type="primary" @click="confirmUser">确 定</el-button>
-                  </span>
+          <el-button @click="innerVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmUser">確定</el-button>
+        </span>
       </el-dialog>
 
+      <!-- 企業体選択 -->
       <el-dialog
-          width="75%"
-          title="企業体選択"
-          :visible.sync="innerVisible1"
-          append-to-body>
+        width="75%"
+        title="企業体選択"
+        :visible.sync="innerVisible1"
+        append-to-body
+        class="inner-dialog"
+      >
         <SelectCorporate @doSelectCorporate="doSelectCorporate"></SelectCorporate>
         <span slot="footer" class="dialog-footer">
-                    <el-button @click="innerVisible1 = false">取 消</el-button>
-                    <el-button type="primary" @click="confirmCorporate">确 定</el-button>
-                  </span>
+          <el-button @click="innerVisible1 = false">取消</el-button>
+          <el-button type="primary" @click="confirmCorporate">確定</el-button>
+        </span>
       </el-dialog>
 
+      <!-- 営業所選択 -->
       <el-dialog
-          width="75%"
-          title="営業所選択"
-          :visible.sync="innerVisibleUnit"
-          append-to-body>
+        width="75%"
+        title="営業所選択"
+        :visible.sync="innerVisibleUnit"
+        append-to-body
+        class="inner-dialog"
+      >
         <SelectUnit @doSelectUnit="doSelectUnit"></SelectUnit>
         <span slot="footer" class="dialog-footer">
-                    <el-button @click="innerVisibleUnit = false">取 消</el-button>
-                    <el-button type="primary" @click="confirmUnit">确 定</el-button>
-                  </span>
+          <el-button @click="innerVisibleUnit = false">取消</el-button>
+          <el-button type="primary" @click="confirmUnit">確定</el-button>
+        </span>
       </el-dialog>
 
-
-
-      <!-- 内嵌套 页面 就是点击新增的页面 然后在点击申请人按钮 又会跳出 另一个输入框  -->
-      
-      <el-form ref="form1" :rules="rules1" :model="form1" label-width="80px">
-        <el-form-item label="要因名称">
-          <el-col :span="20">
-            <el-input v-model="form1.factor" readonly></el-input>
+      <el-form
+        ref="form1"
+        :rules="rules1"
+        :model="form1"
+        label-width="110px"
+        class="custom-form"
+      >
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="要因名称">
+              <el-input v-model="form1.factor" readonly />
+            </el-form-item>
           </el-col>
-        </el-form-item>
 
-        <el-form-item label="発生日">
-          <el-date-picker
-            v-model="form1.today"
-            type="date"
-            placeholder="日付選択">
-          </el-date-picker>
-        </el-form-item>
+<el-col :span="12">
+<el-form-item prop="today">
+  <span slot="label"><span class="required-mark"></span>発生日</span>
+    <el-date-picker
+      v-model="form1.today"
+      type="date"
+      placeholder="日付選択"
+      value-format="yyyy-MM-dd"
+      format="yyyy-MM-dd"
+      class="full-width"
+    />
+  </el-form-item>
+</el-col>
 
-        <el-form-item label="起因者">
-          <el-col :span="20">
-            <el-input v-model="form1.causeperson" readonly @click.native="selectUser"></el-input>
+<el-col :span="12">
+  <el-form-item prop="causeperson">
+    <span slot="label"><span class="required-mark"></span>起因者</span>
+    <el-input
+      v-model="form1.causeperson"
+      readonly
+      placeholder="クリックして選択"
+      @click.native="selectUser('causeperson')"
+    />
+  </el-form-item>
+</el-col>
+          <el-col :span="12">
+           <el-form-item prop="affiliationcode">
+  <span slot="label"><span class="required-mark"></span>営業所</span>
+              <el-input
+                v-model="form1.affiliationcode"
+                readonly
+                placeholder="クリックして選択"
+                @click.native="selectUnit"
+              />
+            </el-form-item>
           </el-col>
-        </el-form-item>
 
-        <el-form-item label="営業所">
-          <el-col :span="20">
-            <!-- 点击申请人按钮 触发 @click.native="selectUser" 事件 -->
-            <el-input v-model="form1.affiliationcode" readonly @click.native="selectUnit"></el-input>
+          <el-col :span="12">
+            <el-form-item prop="corporateentity">
+  <span slot="label"><span class="required-mark"></span>企業体名</span>
+              <el-input
+                v-model="form1.corporateentity"
+                readonly
+                placeholder="クリックして選択"
+                @click.native="selectCorporate"
+              />
+            </el-form-item>
           </el-col>
-        </el-form-item>
 
-        <el-form-item label="企業体名">
-          <el-col :span="20">
-            <!-- 点击申请人按钮 触发 @click.native="selectUser" 事件 -->
-            <el-input v-model="form1.corporateentity" readonly @click.native="selectCorporate"></el-input>
+          <el-col :span="12">
+            <el-form-item label="店舗名" prop="storename">
+              <el-input v-model="form1.storename" />
+            </el-form-item>
           </el-col>
-        </el-form-item>
 
-        <el-form-item label="店舗名" prop="storename">
-          <el-col :span="20">
-            <el-input v-model="form1.storename"></el-input>
+<el-col :span="12">
+  <el-form-item prop="responsibility">
+    <span slot="label"><span class="required-mark"></span>社内外</span>
+    <el-select v-model="form1.responsibility" placeholder="区分選択" class="full-width">
+      <el-option
+        v-for="item in responsibilityOptions"
+        :key="item"
+        :label="item"
+        :value="item"
+      />
+    </el-select>
+  </el-form-item>
+</el-col>
+
+<el-col :span="12">
+  <el-form-item prop="classification">
+    <span slot="label"><span class="required-mark"></span>区分</span>
+    <el-select v-model="form1.classification" placeholder="区分選択" class="full-width">
+      <el-option
+        v-for="item in classificationOptions"
+        :key="item"
+        :label="item"
+        :value="item"
+      />
+    </el-select>
+  </el-form-item>
+</el-col>
+
+          <el-col :span="12">
+           <el-form-item prop="reporter">
+  <span slot="label"><span class="required-mark"></span>報告者</span>
+              <el-input v-model="form1.reporter" />
+            </el-form-item>
           </el-col>
-        </el-form-item>
 
-        <el-form-item label="社内外">
-          <el-select v-model="form1.responsibility" placeholder="区分選択">
-            <el-option label="社内" value="1"></el-option>
-            <el-option label="社外" value="2"></el-option>
-          </el-select>
-        </el-form-item>
+<el-col :span="12">
+  <el-form-item label="温度帯">
+    <el-select v-model="form1.temperature" placeholder="温度帯選択" class="full-width">
+      <el-option
+        v-for="item in temperatureOptions"
+        :key="item"
+        :label="item"
+        :value="item"
+      />
+    </el-select>
+  </el-form-item>
+</el-col>
 
-        <el-form-item label="区分">
-          <el-select v-model="form1.classification" placeholder="区分選択">
-            <el-option label="TP" value="1"></el-option>
-            <el-option label="WH" value="2"></el-option>
-            <el-option label="LD" value="3"></el-option>
-          </el-select>
-        </el-form-item>
+<el-col :span="12">
+  <el-form-item label="センター名" prop="centernm">
+    <el-select
+      v-model="form1.centernm"
+      placeholder="センター名選択"
+      class="full-width"
+    >
+      <el-option
+        v-for="item in centerNameOptions"
+        :key="item"
+        :label="item"
+        :value="item"
+      />
+    </el-select>
+  </el-form-item>
+</el-col>
 
-        <el-form-item label="経緯" prop="progress">
-          <el-col :span="20">
-            <el-input type="textarea" v-model="form1.progress"></el-input>
+<el-col :span="12">
+  <el-form-item label="商品区分" prop="merchandise">
+    <el-select
+      v-model="form1.merchandise"
+      placeholder="商品区分選択"
+      class="full-width"
+    >
+      <el-option
+        v-for="item in merchandiseOptions"
+        :key="item"
+        :label="item"
+        :value="item"
+      />
+    </el-select>
+  </el-form-item>
+</el-col>
+
+
+          <!-- 写真アップロード -->
+<el-col :span="24">
+  <el-form-item label="写真">
+    <div class="photo-upload-block">
+      <input
+        type="file"
+        accept="image/*"
+        @change="handlePhotoChange"
+      />
+
+      <div v-if="selectedPhotoFile" class="photo-file-name">
+        選択ファイル：{{ selectedPhotoFile.name }}
+      </div>
+
+      <div v-if="form1.photograph" class="photo-preview-wrap">
+        <img
+          :src="form1.photograph"
+          alt="写真"
+          class="photo-preview-img"
+        />
+      </div>
+
+      <div v-if="selectedPhotoFile && !form1.photograph" class="photo-preview-actions">
+        <el-button
+          size="mini"
+          type="danger"
+          plain
+          @click="removePhoto"
+        >
+          選択解除
+        </el-button>
+      </div>
+    </div>
+  </el-form-item>
+</el-col>
+
+<el-col :span="12">
+  <el-form-item label="IR対応費用" prop="expenses">
+    <el-input
+      v-model="form1.expenses"
+      placeholder="例：1,200"
+      clearable
+      @input="formatExpenses"
+    />
+  </el-form-item>
+</el-col>
+
+          <el-col :span="24">
+        <el-form-item prop="progress">
+  <span slot="label"><span class="required-mark"></span>経緯</span>
+              <el-input type="textarea" :rows="3" v-model="form1.progress" />
+            </el-form-item>
           </el-col>
-        </el-form-item>
 
-        <el-form-item label="報告者" prop="reporter">
-          <el-col :span="20">
-            <el-input v-model="form1.reporter"></el-input>
+          <el-col :span="24">
+            <el-form-item label="対応方法" prop="correspondence">
+              <el-input type="textarea" :rows="3" v-model="form1.correspondence" />
+            </el-form-item>
           </el-col>
-        </el-form-item>
 
-        <el-form-item label="温度帯">
-          <el-select v-model="form1.temperature" placeholder="温度帯選択">
-            <el-option label="冷蔵" value="1"></el-option>
-            <el-option label="チルド" value="2"></el-option>
-            <el-option label="常温" value="3"></el-option>
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="対応方法" prop="correspondence">
-          <el-col :span="20">
-            <el-input type="textarea" v-model="form1.correspondence"></el-input>
+          <el-col :span="12">
+            <el-form-item label="対応者" prop="correspondenceperson">
+              <el-input v-model="form1.correspondenceperson" />
+            </el-form-item>
           </el-col>
-        </el-form-item>
 
-        <el-form-item label="対応者" prop="correspondenceperson">
-          <el-col :span="20">
-            <el-input v-model="form1.correspondenceperson"></el-input>
+          <el-col :span="24">
+            <el-form-item label="対応策" prop="countermeasure">
+              <el-input type="textarea" :rows="3" v-model="form1.countermeasure" />
+            </el-form-item>
           </el-col>
-        </el-form-item>
 
-        <el-form-item label="対応策" prop="countermeasure">
-          <el-col :span="20">
-            <el-input type="textarea" v-model="form1.countermeasure"></el-input>
-          </el-col>
-        </el-form-item>
+<el-col :span="12">
+  <el-form-item prop="filledinby">
+    <span slot="label"><span class="required-mark"></span>記入者</span>
+    <el-input
+      v-model="form1.filledinby"
+      readonly
+      placeholder="クリックして選択"
+      @click.native="selectUser('filledinby')"
+    />
+  </el-form-item>
+</el-col>
+
+
+        </el-row>
       </el-form>
+
+
       <span slot="footer" class="dialog-footer">
-    <el-button @click="inDialogVisible = false">取 消</el-button>
-    <el-button type="primary" @click="doInGoods">确 定</el-button>
-  </span>
+        <el-button @click="inDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="doInGoods">確定</el-button>
+      </span>
     </el-dialog>
   </div>
 </template>
 
 <script>
-//传入 selectuser 的员工信息
 import SelectUser from "../user/SelectUser";
 import SelectCorporate from "../corporate/SelectCorporate";
 import SelectUnit from "../unit/SelectUnit";
 
 export default {
   name: "GoodsManage",
-  components: {SelectUser,SelectCorporate,SelectUnit},
-  data() {
-    let checkCount = (rule, value, callback) => {
-      if (value > 9999) {
-        callback(new Error('数量输入过大'));
-      } else {
-        callback();
-      }
+  components: { SelectUser, SelectCorporate, SelectUnit },
+data() {
+  return {
+    user: JSON.parse(sessionStorage.getItem("CurUser")),
+    storageData: [],
+    goodstypeData: [],
+    tableData: [],
+    pageSize: 10,
+    pageNum: 1,
+    total: 0,
+    factor: "",
+    storage: "",
+    goodstype: "",
+    centerDialogVisible: false,
+    inDialogVisible: false,
+    innerVisible: false,
+    innerVisible1: false,
+    innerVisibleUnit: false,
+    currentRow: {},
+    tempUser: {},
+    tempCorporate: {},
+    tempUnit: {},
+    selectedPhotoFile: null,
+    photoUploading: false,
+    currentSelectType: '', 
+    centerNameOptions: [],
+merchandiseOptions: [],
+    form: {
+      no: "",
+      id: "",
+      factor: "",
+      comment: ""
+    },
+    form1: {
+      today: "",
+      classification: "",
+      responsibility: "",
+      storename: "",
+      factor: "",
+      reporter: "",
+      corporateentity: "",
+      affiliationcode: "",
+      temperature: "",
+      correspondence: "",
+      correspondenceperson: "",
+      countermeasure: "",
+      progress: "",
+      causeperson: "",
+      userid: "",
+      adminuserid: "",
+      photograph: "",
+      expenses: "",
+            filledinby: '',
+      filledinbyid: null,
+        centernm: "",
+  merchandise: ""
+    },
+    rules1: {
+  today: [
+    { required: true, message: "発生日を選択してください", trigger: "change" }
+  ],
+  causeperson: [
+    { required: true, message: "起因者を選択してください", trigger: "change" }
+  ],
+  affiliationcode: [
+    { required: true, message: "営業所を選択してください", trigger: "change" }
+  ],
+  corporateentity: [
+    { required: true, message: "企業体名を選択してください", trigger: "change" }
+  ],
+  responsibility: [
+    { required: true, message: "社内外を選択してください", trigger: "change" }
+  ],
+  classification: [
+    { required: true, message: "区分を選択してください", trigger: "change" }
+  ],
+  reporter: [
+    { required: true, message: "報告者を入力してください", trigger: "blur" }
+  ],
+  progress: [
+    { required: true, message: "経緯を入力してください", trigger: "blur" }
+  ],
+    filledinby: [
+    { required: true, message: "記入者を選択してください", trigger: "change" }
+  ]
+},
+    rules: {}
+  };
+},
+methods: {
+  formatExpenses(value) {
+    const numeric = String(value || "").replace(/[^\d]/g, "");
+    if (!numeric) {
+      this.form1.expenses = "";
+      return;
+    }
+    this.form1.expenses = numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  },
+
+  doSelectUser(val) {
+    this.tempUser = val;
+  },
+
+  doSelectCorporate(val) {
+    this.tempCorporate = val;
+  },
+
+  doSelectUnit(val) {
+    this.tempUnit = val;
+  },
+
+  confirmUser() {
+    if (!this.tempUser || !this.tempUser.id) {
+      this.$message.warning("社員を選択してください。");
+      return;
+    }
+
+    if (this.currentSelectType === "causeperson") {
+      this.form1.causeperson = this.tempUser.name;
+      this.form1.userid = this.tempUser.id;
+    } else if (this.currentSelectType === "filledinby") {
+      this.form1.filledinby = this.tempUser.name;
+      this.form1.filledinbyid = this.tempUser.id;
+    }
+
+    this.innerVisible = false;
+    this.currentSelectType = "";
+  },
+
+  confirmCorporate() {
+    this.form1.corporateentity = this.tempCorporate.corporateentity;
+    this.innerVisible1 = false;
+  },
+
+  confirmUnit() {
+    this.form1.affiliationcode = this.tempUnit.name;
+    this.innerVisibleUnit = false;
+  },
+
+  selectCurrentChange(val) {
+    this.currentRow = val || {};
+  },
+
+  resetForm() {
+    this.form = {
+      no: "",
+      id: "",
+      factor: "",
+      comment: ""
     };
 
-    return {
-      user: JSON.parse(sessionStorage.getItem('CurUser')),
-      storageData: [],
-      goodstypeData: [],
-      tableData: [],
-      pageSize: 30,
-      pageNum: 1,
-      total: 0,
-      factor: '',
-      storage: '',
-      today:'',
-      goodstype: '',
-      centerDialogVisible: false,
-      inDialogVisible: false,
-      innerVisible: false,
-      innerVisible1: false,
-      innerVisibleUnit:false,
-      currentRow: {},
-      tempUser: {},
-      tempCorporate:{},
-      tempUnit:{},
-      form: {
-        id: '',
-        factor: '',
-        comment: ''
-      },
-      form1: {
-        today:'', //登録日
-        classification:'',//LD,TP,WH区分選択
-        responsibility:'',//社内社外区分選択
-        storename:'',//店舗名
-        factor: '',//要因別
-        reporter:'',//報告者
-        corporateentity: '',//企業体名
-        affiliationcode:'',//営業所
-        temperature:'',//温度帯
-        correspondence:'',//対応方法
-        correspondenceperson:'',//対応者
-        countermeasure:'',//対応策
-        progress:'',//経過
-        causeperson: '',//起因者
-        // employeeId:'',//社員ID
-        userid: '',//起因者社員番号
-        adminuserid: '',//登録者、ログインアカウント
-        // remark: '',
-        // action: '1' //出库和入库 入库为1 出库为2 
-      },
-      rules1: {},
-      rules: {
+    this.$nextTick(() => {
+      if (this.$refs.form) {
+        this.$refs.form.clearValidate();
       }
-    }
+    });
   },
-  methods: {
-    doSelectUser(val) {
-      console.log(val)
-      this.tempUser = val
-    },
-    doSelectCorporate(val) {
-      console.log(val)
-      this.tempCorporate = val
-    },
-    doSelectUnit(val) {
-      console.log(val)
-      this.tempUnit = val
-    },
 
-    confirmUser() {
-      this.form1.causeperson = this.tempUser.name
-      this.form1.userid = this.tempUser.id
-      this.innerVisible = false
-    },
+  resetInForm() {
+    this.form1 = {
+      today: "",
+      classification: "",
+      responsibility: "",
+      storename: "",
+      factor: "",
+      reporter: "",
+      corporateentity: "",
+      affiliationcode: "",
+      temperature: "",
+      correspondence: "",
+      correspondenceperson: "",
+      countermeasure: "",
+      progress: "",
+      causeperson: "",
+      userid: "",
+      adminuserid: "",
+      photograph: "",
+      expenses: "",
+      filledinby: "",
+      filledinbyid: null,
+          centernm: "",
+    merchandise: ""
+    };
 
-    confirmCorporate() {
-      this.form1.corporateentity = this.tempCorporate.corporateentity
-      this.innerVisible1 = false
-    },
+    this.selectedPhotoFile = null;
+    this.photoUploading = false;
+    this.tempUser = {};
+    this.currentSelectType = "";
 
-    confirmUnit() {
-      this.form1.affiliationcode = this.tempUnit.name
-      this.innerVisibleUnit = false
-    },
-    selectCurrentChange(val) {
-      this.currentRow = val;
-    },
+    this.$nextTick(() => {
+      if (this.$refs.form1) {
+        this.$refs.form1.clearValidate();
+      }
+    });
+  },
 
-    //如果item的id值和 当前选中行的仓库名字一样，那么就return结果  temp等于取到的对于仓库名  
-    formatStorage(row) {
-      let temp = this.storageData.find(item => {
-        return item.id == row.storage
-      })
+  handlePhotoChange(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      this.selectedPhotoFile = null;
+      return;
+    }
 
-      return temp && temp.name
-    },
-    //如果item的id值和 当前选中行的仓库名字一样，那么就return结果  temp等于取到的对于商品的归类信息
-    formatGoodstype(row) {
-      let temp = this.goodstypeData.find(item => {
-        return item.id == row.goodstype
-      })
+    const isImage = file.type.startsWith("image/");
+    if (!isImage) {
+      this.$message.warning("画像ファイルを選択してください。");
+      event.target.value = "";
+      this.selectedPhotoFile = null;
+      return;
+    }
 
-      return temp && temp.name
-    },
-    resetForm() {
-      this.$refs.form.resetFields();
-    },
-    resetInForm() {
-      this.$refs.form1.resetFields();
-    },
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      this.$message.warning("ファイルサイズは10MB以下にしてください。");
+      event.target.value = "";
+      this.selectedPhotoFile = null;
+      return;
+    }
 
-    //要因のテーブル
-    del(no) {
-      console.log(no)
+    this.selectedPhotoFile = file;
+  },
 
-      this.$axios.get(this.$httpUrl + '/factor/delete?no=' + no).then(res => res.data).then(res => {
-        console.log(res)
-        if (res.code == 200) {
+  removePhoto() {
+    this.form1.photograph = "";
+    this.selectedPhotoFile = null;
+  },
 
-          this.$message({
-            message: '変更完了！',
-            type: 'success'
-          });
-          this.loadPost()
-        } else {
-          this.$message({
-            message: '変更失敗！',
-            type: 'error'
-          });
-        }
+  loadAuthorityOptions() {
+    this.$axios.get(this.$httpUrl + "/m-authority/options").then(res => {
+      const data = res.data.data;
+      this.responsibilityOptions = data.responsibilityList || [];
+      this.classificationOptions = data.classificationList || [];
+      this.temperatureOptions = data.temperatureList || [];
+          this.centerNameOptions = data.centerNameList || [];
+    this.merchandiseOptions = data.merchandiseList || [];
+    });
+  },
 
-      })
-    },
-    mod(row) {
-      this.centerDialogVisible = true
-      this.$nextTick(() => {
-        //赋值到表单
-        this.form.no = row.no
-        this.form.id = row.id
-        this.form.factor = row.factor
-        this.form.comment = row.comment
-      })
-    },
-    add() {
+  inGoods() {
+    if (!this.currentRow.no) {
+      this.$message.warning("要因を選択してください。");
+      return;
+    }
 
-      this.centerDialogVisible = true
-      this.$nextTick(() => {
-        this.resetForm()
+    this.inDialogVisible = true;
+    this.resetInForm();
+    this.loadAuthorityOptions();
 
-        this.form.id = ''
-      })
+    this.$nextTick(() => {
+      this.form1.factor = this.currentRow.factor;
+      this.form1.adminuserid = this.user ? this.user.name : "";
+    });
+  },
 
-    },
-    inGoods() {
+  selectUser(type) {
+    this.currentSelectType = type;
+    this.innerVisible = true;
+  },
 
-      // 当点击新增的时候,它的id存在的话 就是当某个商品的行是在选中的状态下,
-      // 就可以进行入库,如果没有id的值话 就弹出一个  请选择记录的 窗口
-      if (!this.currentRow.no) {
-        alert('要因別選択してください！');
+  selectCorporate() {
+    this.innerVisible1 = true;
+  },
+
+  selectUnit() {
+    this.innerVisibleUnit = true;
+  },
+
+  doInGoods() {
+    this.$refs.form1.validate(valid => {
+      if (!valid) {
+        this.$message.warning("必須項目を入力してください。");
         return;
       }
-      this.inDialogVisible = true
-      this.$nextTick(() => {
-        this.resetInForm()
-      })
-      this.form1.factor = this.currentRow.factor
-      // this.form1.goods = this.currentRow.id
-      this.form1.adminuserid = this.user.name
-      // this.form1.action = '1' //入库
-    },
-    outGoods() {
-      if (!this.currentRow.id) {
-        alert('请选择记录');
-        return;
+
+      const submitData = {
+        ...this.form1,
+        expenses: this.form1.expenses
+          ? this.form1.expenses.toString().replace(/,/g, "")
+          : null
+      };
+
+      const formData = new FormData();
+      formData.append("recordJson", JSON.stringify(submitData));
+
+      if (this.selectedPhotoFile) {
+        formData.append("file", this.selectedPhotoFile);
       }
-      this.inDialogVisible = true
-      this.$nextTick(() => {
-        this.resetInForm()
-      })
 
-      // this.form1.goodsname = this.currentRow.name
-      // this.form1.goods = this.currentRow.id
-      this.form1.adminuserid = this.user.name
-      // this.form1.action = '2' //出库
-
-    },
-
-    selectUser() {
-      this.innerVisible = true
-    },
-
-    selectCorporate() {
-      this.innerVisible1 = true
-    },
-    selectUnit() {
-      this.innerVisibleUnit = true
-    },
-    doSave() {
-      this.$axios.post(this.$httpUrl + '/factor/save', this.form).then(res => res.data).then(res => {
-        console.log(res)
-        if (res.code == 200) {
-
-          this.$message({
-            message: '操作成功！',
-            type: 'success'
-          });
-          this.centerDialogVisible = false
-          this.loadPost()
-          this.resetForm()
-        } else {
-          this.$message({
-            message: '操作失败！',
-            type: 'error'
-          });
-        }
-
-      })
-    },
-    doMod() {
-      this.$axios.post(this.$httpUrl + '/factor/update', this.form).then(res => res.data).then(res => {
-        console.log(res)
-        if (res.code == 200) {
-
-          this.$message({
-            message: '操作成功！',
-            type: 'success'
-          });
-          this.centerDialogVisible = false
-          this.loadPost()
-          this.resetForm()
-        } else {
-          this.$message({
-            message: '操作失败！',
-            type: 'error'
-          });
-        }
-
-      })
-    },
-    save() {
-      this.$refs.form.validate((valid) => {
-        if (valid) {
-          if (this.form.no) {
-            this.doMod();
-          } else {
-            this.doSave();
+      this.$axios
+        .post(this.$httpUrl + "/record/save", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data"
           }
-        } else {
-          console.log('error submit!!');
-          return false;
-        }
-      });
-
-    },
-    doInGoods() {
-      this.$axios.post(this.$httpUrl + '/record/save', this.form1).then(res => res.data).then(res => {
-        console.log(res)
-        if (res.code == 200) {
-
+        })
+        .then(res => res.data)
+        .then(res => {
+          if (res.code == 200) {
+            this.$message({
+              message: "登録完了！",
+              type: "success"
+            });
+            this.inDialogVisible = false;
+            this.loadPost();
+            this.resetInForm();
+          } else {
+            this.$message({
+              message: res.msg || "登録失敗！",
+              type: "error"
+            });
+          }
+        })
+        .catch(() => {
           this.$message({
-            message: '操作成功！',
-            type: 'success'
+            message: "登録処理に失敗しました！",
+            type: "error"
           });
-          this.inDialogVisible = false
-          this.loadPost()
-          this.resetInForm()
-        } else {
-          this.$message({
-            message: '操作失败！',
-            type: 'error'
-          });
-        }
+        });
+    });
+  },
 
-      })
-    },
-    handleSizeChange(val) {
-      console.log(`每页 ${val} 条`);
-      this.pageNum = 1
-      this.pageSize = val
-      this.loadPost()
-    },
-    handleCurrentChange(val) {
-      console.log(`当前页: ${val}`);
-      this.pageNum = val
-      this.loadPost()
-    },
-    // 重置按钮，查找输入框的内容清除
-    resetParam() {
-      this.factor = ''
-    },
-    loadPost() {
-      this.$axios.post(this.$httpUrl + '/factor/listPage', {
+  loadPost() {
+    this.$axios
+      .post(this.$httpUrl + "/factor/listPage", {
         pageSize: this.pageSize,
         pageNum: this.pageNum,
         param: {
-          factor: this.factor,
-          //强转方式， 不加 + '', 强行转换的话，那么它是Integer类型，后端接受的String类型，
-          //就会出现类型不匹配错误 所以要加强转  ⭐⭐⭐⭐⭐⭐⭐⭐
-          // goodstype: this.goodstype + '',
-          // storage: this.storage + ''
+          factor: this.factor
         }
-      }).then(res => res.data).then(res => {
-        console.log(res)
-        if (res.code == 200) {
-          this.tableData = res.data
-          this.total = res.total
-        } else {
-          alert('获取数据失败')
-        }
-
       })
-    }
-  },
-  beforeMount() {
-    this.loadPost()
-
+      .then(res => res.data)
+      .then(res => {
+        if (res.code == 200) {
+          this.tableData = res.data;
+          this.total = res.total;
+        } else {
+          this.$message.error("データ取得失敗");
+        }
+      })
+      .catch(() => {
+        this.$message.error("データ取得に失敗しました");
+      });
   }
-}
+},
+  beforeMount() {
+  this.loadPost();
+  this.loadAuthorityOptions();
+  }
+};
 </script>
 
 <style scoped>
+.goods-manage-page {
+  padding: 20px;
+  background: #f7f8fa;
+  min-height: 100%;
+  box-sizing: border-box;
+}
 
+.page-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.search-input {
+  width: 260px;
+}
+
+.custom-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.photo-upload-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.photo-upload-btn {
+  width: 150px;
+}
+
+.photo-preview-wrap {
+  margin-top: 12px;
+}
+
+.photo-preview-img {
+  max-width: 240px;
+  max-height: 180px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  display: block;
+}
+
+.photo-preview-actions {
+  margin-top: 8px;
+}
+
+.custom-dialog /deep/ .el-dialog {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.custom-dialog /deep/ .el-dialog__header {
+  background: linear-gradient(90deg, #409eff, #66b1ff);
+  padding: 18px 20px;
+}
+
+.custom-dialog /deep/ .el-dialog__title {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.custom-dialog /deep/ .el-dialog__body {
+  padding: 24px 24px 10px;
+}
+
+.inner-dialog /deep/ .el-dialog {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.inner-dialog /deep/ .el-dialog__header {
+  background: linear-gradient(90deg, #67c23a, #85ce61);
+  padding: 16px 20px;
+}
+
+.inner-dialog /deep/ .el-dialog__title {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.custom-form /deep/ .el-form-item__label {
+  font-weight: 600;
+  color: #303133;
+}
+
+.custom-form /deep/ .el-input__inner,
+.custom-form /deep/ .el-textarea__inner,
+.custom-form /deep/ .el-select .el-input__inner {
+  border-radius: 8px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 0 5px;
+}
+
+.dialog-footer .el-button {
+  min-width: 100px;
+  border-radius: 8px;
+}
+
+@media screen and (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    width: 100%;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .pagination-wrap {
+    justify-content: center;
+  }
+}
+.required-mark {
+  color: #f56c6c;
+  margin-right: 4px;
+  font-weight: 700;
+}
 </style>

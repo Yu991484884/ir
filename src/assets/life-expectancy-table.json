@@ -1,0 +1,123 @@
+[
+    {
+      "Year": 1950,
+      "Country": "Finland",
+      "Income": 1200
+    },
+    {
+      "Year": 1960,
+      "Country": "Finland",
+      "Income": 2500
+    },
+    {
+      "Year": 1970,
+      "Country": "Finland",
+      "Income": 3700
+    },
+    {
+      "Year": 1980,
+      "Country": "Finland",
+      "Income": 4500
+    },
+    {
+      "Year": 1990,
+      "Country": "Finland",
+      "Income": 4900
+    },
+    {
+      "Year": 2000,
+      "Country": "Finland",
+      "Income": 5400
+    },
+    {
+      "Year": 2010,
+      "Country": "Finland",
+      "Income": 5900
+    },
+    {
+      "Year": 2020,
+      "Country": "Finland",
+      "Income": 6300
+    },
+    {
+      "Year": 1950,
+      "Country": "France",
+      "Income": 1300
+    },
+    {
+      "Year": 1960,
+      "Country": "France",
+      "Income": 2700
+    },
+    {
+      "Year": 1970,
+      "Country": "France",
+      "Income": 3900
+    },
+    {
+      "Year": 1980,
+      "Country": "France",
+      "Income": 4600
+    },
+    {
+      "Year": 1990,
+      "Country": "France",
+      "Income": 5100
+    },
+    {
+      "Year": 2000,
+      "Country": "France",
+      "Income": 5500
+    },
+    {
+      "Year": 2010,
+      "Country": "France",
+      "Income": 6000
+    },
+    {
+      "Year": 2020,
+      "Country": "France",
+      "Income": 6500
+    },
+    {
+      "Year": 1950,
+      "Country": "Germany",
+      "Income": 1400
+    },
+    {
+      "Year": 1960,
+      "Country": "Germany",
+      "Income": 2900
+    },
+    {
+      "Year": 1970,
+      "Country": "Germany",
+      "Income": 4100
+    },
+    {
+      "Year": 1980,
+      "Country": "Germany",
+      "Income": 4700
+    },
+    {
+      "Year": 1990,
+      "Country": "Germany",
+      "Income": 5300
+    },
+    {
+      "Year": 2000,
+      "Country": "Germany",
+      "Income": 5800
+    },
+    {
+      "Year": 2010,
+      "Country": "Germany",
+      "Income": 6300
+    },
+    {
+      "Year": 2020,
+      "Country": "Germany",
+      "Income": 6800
+    }
+  ]
+  
